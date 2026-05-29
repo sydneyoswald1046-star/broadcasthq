@@ -9,7 +9,8 @@ struct MemberDashboardView: View {
     @EnvironmentObject var authState: AuthState
     
     @State private var timerTick: Int = 0
-    
+    @State private var showMonitor: Bool = false
+
     private var members: [AppUser] {
         authState.accounts.filter { $0.isApproved }.map { $0.toAppUser() }
     }
@@ -63,6 +64,7 @@ struct MemberDashboardView: View {
                 if isBroadcastLive, let next = myNextSegment { upNextCard(segment: next) }
                 
                 statsRow
+                ndiMonitorTile
                 memberQuickActions
                 memberMessagesSection
                 mySegmentsSection
@@ -75,6 +77,49 @@ struct MemberDashboardView: View {
         }
         .background(Color.bhqBackground)
         .onReceive(timer) { _ in if isBroadcastLive { timerTick += 1 } }
+        .fullScreenCover(isPresented: $showMonitor) {
+            NavigationStack {
+                NDIMonitorView()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button { showMonitor = false } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "chevron.down").font(.system(size: 14, weight: .semibold))
+                                    Text("Close").font(.system(size: 15, weight: .medium))
+                                }
+                                .foregroundStyle(Color.bhqBlue)
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    // MARK: - NDI Monitor (prominent entry for members)
+    private var ndiMonitorTile: some View {
+        Button { showMonitor = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "video.badge.waveform")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.bhqBlue)
+                    .frame(width: 44, height: 44)
+                    .background(Color.bhqBlue.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("NDI Monitor").font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.primary)
+                    Text("Watch a live video feed from the network").font(.system(size: 12)).foregroundStyle(Color.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.secondary.opacity(0.5))
+            }
+            .padding(14)
+            .background(Color.bhqCard)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bhqBlue.opacity(0.15), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal)
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Stats Row (matches admin)
