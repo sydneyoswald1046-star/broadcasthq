@@ -41,6 +41,27 @@ struct HelpSupportView: View {
                 .padding(.vertical, 12)
             }
             
+            // Getting Started
+            Section {
+                Button {
+                    NotificationCenter.default.post(name: .replayWalkthrough, object: nil)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.bhqTint)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        Text("Replay App Walkthrough").font(.body).foregroundStyle(Color.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.secondary.opacity(0.5))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } header: { Text("Getting Started") }
+
             // FAQ
             Section {
                 ForEach(faqs, id: \.0) { faq in

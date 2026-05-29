@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var greenGlowPulse: Bool = false
     @State private var isPTTActive: Bool = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
+    @AppStorage("walkthroughCompleted") private var walkthroughCompleted: Bool = false
+    @State private var showWalkthrough: Bool = false
     
     @ObservedObject private var audioService = PTTAudioService.shared
     
@@ -77,6 +79,16 @@ struct ContentView: View {
             
             // All overlays (shared between iPad and iPhone)
             overlays
+
+            // First-run / replayable role-aware walkthrough
+            if showWalkthrough {
+                WalkthroughView(role: currentUser.role) {
+                    walkthroughCompleted = true
+                    withAnimation { showWalkthrough = false }
+                }
+                .transition(.opacity)
+                .zIndex(500)
+            }
         }
         .onAppear {
             borderPulse = true
@@ -84,6 +96,10 @@ struct ContentView: View {
             authState.startAudioService()
             UIApplication.shared.isIdleTimerDisabled = true
             ExternalScreenManager.shared.configure(authState: authState, settings: settings)
+            if !walkthroughCompleted { showWalkthrough = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .replayWalkthrough)) { _ in
+            withAnimation { showWalkthrough = true }
         }
         .onDisappear {
             volumePTT.deactivate()

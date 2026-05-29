@@ -122,4 +122,5 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 extension Notification.Name {
     static let pushNotificationTapped = Notification.Name("pushNotificationTapped")
+    static let replayWalkthrough = Notification.Name("replayWalkthrough")
 }
