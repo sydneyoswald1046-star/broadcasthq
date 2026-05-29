@@ -100,6 +100,22 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) {
         print("❌ APNs registration failed: \(error)")
     }
+
+    // Route the external-display scene to our dedicated delegate so a connected
+    // Apple TV / HDMI screen renders the auditorium timer instead of mirroring the
+    // phone. All other scenes (the main app) keep SwiftUI's default handling.
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        if connectingSceneSession.role == .windowExternalDisplayNonInteractive {
+            let config = UISceneConfiguration(name: "External Display", sessionRole: connectingSceneSession.role)
+            config.delegateClass = ExternalDisplaySceneDelegate.self
+            return config
+        }
+        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    }
 }
 
 // MARK: - Notification Name

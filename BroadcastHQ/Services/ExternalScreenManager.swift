@@ -3,31 +3,24 @@ import SwiftUI
 import UIKit
 
 /// Drives a connected external display (Apple TV via AirPlay screen-mirroring, or a
-/// wired HDMI adapter) with a dedicated big-timer view, independent of what the phone
-/// shows. Purely additive: when no screen is connected nothing happens.
+/// wired HDMI adapter) with a dedicated big-timer view, independent of the phone UI.
 ///
-/// Uses the legacy `UIScreen`/`UIWindow` external-display path. It is deprecated in
-/// favour of scene-based external displays but remains functional through current iOS,
-/// and avoids invasive `Info.plist` scene-manifest changes to this SwiftUI-lifecycle app.
+/// Uses the external-display **scene** API: the app declares
+/// `UIApplicationSupportsMultipleScenes` and AppDelegate hands the external display
+/// role to `ExternalDisplaySceneDelegate`, which hosts `ExternalRootView` on that
+/// screen. iOS therefore stops mirroring and lets us render our own content instead.
 final class ExternalScreenManager: ObservableObject {
     static let shared = ExternalScreenManager()
 
-    /// True when a second screen (Apple TV / HDMI) is currently attached.
+    /// True while a second screen is attached (its scene has connected).
     @Published private(set) var isScreenConnected: Bool = false
-    /// True when the auditorium timer is actively mirrored to that screen.
-    @Published private(set) var isShowing: Bool = false
+    /// Operator toggle — show the timer on the external screen vs. an idle placeholder.
+    @Published var isShowing: Bool = false
 
-    private var externalWindow: UIWindow?
-    private weak var authState: AuthState?
-    private weak var settings: AppSettings?
+    fileprivate weak var authState: AuthState?
+    fileprivate weak var settings: AppSettings?
 
-    private init() {
-        refreshConnection()
-        NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
-                                               name: UIScreen.didConnectNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
-                                               name: UIScreen.didDisconnectNotification, object: nil)
-    }
+    private init() {}
 
     /// Inject the data sources the external view renders. Call once from the root view.
     func configure(authState: AuthState, settings: AppSettings) {
@@ -35,49 +28,60 @@ final class ExternalScreenManager: ObservableObject {
         self.settings = settings
     }
 
-    func toggle() {
-        isShowing ? detach() : attach()
+    func toggle() { isShowing.toggle() }
+
+    fileprivate func setConnected(_ connected: Bool) {
+        isScreenConnected = connected
+        if !connected { isShowing = false }
     }
+}
 
-    // MARK: - Screen lifecycle
+// MARK: - External display content
 
-    @objc private func screensChanged() {
-        DispatchQueue.main.async {
-            self.refreshConnection()
-            if !self.isScreenConnected { self.detach() }
+/// Root view shown on the external screen. Idle placeholder until the operator taps
+/// the TV button (`isShowing`), then the full auditorium timer.
+private struct ExternalRootView: View {
+    @ObservedObject private var manager = ExternalScreenManager.shared
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if manager.isShowing, let authState = manager.authState {
+                AuditoriumTimerView()
+                    .environmentObject(authState)
+                    .environmentObject(manager.settings ?? AppSettings())
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "tv").font(.system(size: 64)).foregroundStyle(.white.opacity(0.14))
+                    HStack(spacing: 0) {
+                        Text("Valor").font(.system(size: 30, weight: .bold)).foregroundStyle(.white.opacity(0.3))
+                        Text(".").font(.system(size: 30, weight: .bold)).foregroundStyle(Color(red: 1, green: 0.42, blue: 0.1).opacity(0.5))
+                        Text("Live").font(.system(size: 30, weight: .bold)).foregroundStyle(.white.opacity(0.3))
+                    }
+                }
+            }
         }
     }
+}
 
-    private func refreshConnection() {
-        isScreenConnected = externalScreen() != nil
-    }
+// MARK: - External display scene delegate
 
-    private func externalScreen() -> UIScreen? {
-        UIScreen.screens.first { $0 !== UIScreen.main }
-    }
+/// Owns the window on the external display. The system creates this scene only because
+/// the app supports multiple scenes; AppDelegate routes the external role here.
+final class ExternalDisplaySceneDelegate: NSObject, UIWindowSceneDelegate {
+    var window: UIWindow?
 
-    // MARK: - Attach / detach the big-timer window
-
-    func attach() {
-        guard externalWindow == nil,
-              let screen = externalScreen(),
-              let authState = authState else { return }
-
-        let root = AuditoriumTimerView()
-            .environmentObject(authState)
-            .environmentObject(settings ?? AppSettings())
-
-        let window = UIWindow(frame: screen.bounds)
-        window.screen = screen
-        window.rootViewController = UIHostingController(rootView: root)
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options: UIScene.ConnectionOptions) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        let window = UIWindow(windowScene: windowScene)
+        window.rootViewController = UIHostingController(rootView: ExternalRootView())
         window.isHidden = false
-        externalWindow = window
-        isShowing = true
+        self.window = window
+        ExternalScreenManager.shared.setConnected(true)
     }
 
-    func detach() {
-        externalWindow?.isHidden = true
-        externalWindow = nil
-        isShowing = false
+    func sceneDidDisconnect(_ scene: UIScene) {
+        window = nil
+        ExternalScreenManager.shared.setConnected(false)
     }
 }
