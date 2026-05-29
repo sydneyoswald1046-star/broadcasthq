@@ -67,15 +67,21 @@ class PTTAudioService: NSObject, ObservableObject {
         currentUserTeam = userTeam
         currentUserRole = userRole
         
-        // MCPeerID crashes if displayName is empty or > 63 characters
-        var displayName = "\(userName)|\(userId)|\(userTeam)"
-        if displayName.isEmpty { displayName = "user-\(UUID().uuidString.prefix(8))" }
-        if displayName.count > 63 { displayName = String(displayName.prefix(63)) }
-        
+        // displayName carries routing info: "name|userId|team|role". MCPeerID crashes
+        // if it's empty or > 63 chars, so truncate only the name part if needed.
+        let safeName = userName.isEmpty ? "user-\(UUID().uuidString.prefix(8))" : userName
+        let suffix = "|\(userId)|\(userTeam)|\(userRole)"
+        var displayName = safeName + suffix
+        if displayName.count > 63 {
+            let maxName = max(1, 63 - suffix.count)
+            displayName = String(safeName.prefix(maxName)) + suffix
+        }
+
         peerID = MCPeerID(displayName: displayName)
         guard let pid = peerID else { return }
-        
-        session = MCSession(peer: pid, securityIdentity: nil, encryptionPreference: .none)
+
+        // .required → audio is encrypted on the wire between peers.
+        session = MCSession(peer: pid, securityIdentity: nil, encryptionPreference: .required)
         session?.delegate = self
         
         let svc = "valorlive-ptt"
@@ -197,21 +203,26 @@ class PTTAudioService: NSObject, ObservableObject {
         
         guard format.sampleRate > 0, format.channelCount > 0 else { return }
         
-        // Send format info so receivers know what to expect
-        sendFormatInfo(format, channel: channel, to: session.connectedPeers)
-        
+        // Send format info only to the peers that should receive this channel.
+        sendFormatInfo(format, channel: channel, to: targetPeers(for: channel, among: session.connectedPeers))
+
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             guard let self = self, let session = self.session, !session.connectedPeers.isEmpty else { return }
             guard let channelData = buffer.floatChannelData?[0] else { return }
             let frameCount = Int(buffer.frameLength)
             guard frameCount > 0 else { return }
-            
+
+            // Only transmit to peers on the target channel (team members + supervisors,
+            // or the DM target). Team B never receives Team A's audio on the wire.
+            let targets = self.targetPeers(for: self.targetChannel, among: session.connectedPeers)
+            guard !targets.isEmpty else { return }
+
             let channelBytes = self.targetChannel.data(using: .utf8) ?? Data()
             var data = Data([0x41, UInt8(channelBytes.count)])
             data.append(channelBytes)
             data.append(Data(bytes: channelData, count: frameCount * MemoryLayout<Float>.size))
-            
-            try? session.send(data, toPeers: session.connectedPeers, with: .unreliable)
+
+            try? session.send(data, toPeers: targets, with: .unreliable)
         }
         
         do {
@@ -290,8 +301,38 @@ class PTTAudioService: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Send targeting (which peers receive this channel)
+
+    /// Peers that should receive audio for `channel`. Routing is enforced here at the
+    /// send level (not just receiver-side), so a team only ever gets its own channel.
+    private func targetPeers(for channel: String, among peers: [MCPeerID]) -> [MCPeerID] {
+        if channel == "global" || channel == "all" { return peers }
+
+        if channel.hasPrefix("dm:") {
+            let uid = String(channel.dropFirst(3))
+            return peers.filter { Self.peerUserId($0) == uid }
+        }
+
+        // Team channel — that team, plus admins/team_leads who monitor everything.
+        let ch = channel == "choirlead" ? "choir" : channel
+        return peers.filter { peer in
+            let role = Self.peerRole(peer)
+            if role == "admin" || role == "team_lead" { return true }
+            let tm = Self.peerTeam(peer) == "choirlead" ? "choir" : Self.peerTeam(peer)
+            return tm == ch
+        }
+    }
+
+    private static func peerField(_ peer: MCPeerID, _ index: Int) -> String {
+        let parts = peer.displayName.split(separator: "|", omittingEmptySubsequences: false)
+        return index < parts.count ? String(parts[index]) : ""
+    }
+    private static func peerUserId(_ peer: MCPeerID) -> String { peerField(peer, 1) }
+    private static func peerTeam(_ peer: MCPeerID) -> String { peerField(peer, 2) }
+    private static func peerRole(_ peer: MCPeerID) -> String { peerField(peer, 3) }
+
     // MARK: - Receive & Filter
-    
+
     private func shouldPlayAudio(channel: String) -> Bool {
         // DM — only the target user hears
         if channel.hasPrefix("dm:") {
@@ -423,7 +464,14 @@ extension PTTAudioService: MCSessionDelegate {
 
 extension PTTAudioService: MCNearbyServiceAdvertiserDelegate {
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
-        // Only accept from same org
+        // Only accept peers from the same org (church). The inviter puts its org code
+        // in the context; reject anything that doesn't match so Church B never joins
+        // Church A's audio session.
+        let theirOrg = context.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        guard !currentOrgCode.isEmpty, theirOrg == currentOrgCode else {
+            invitationHandler(false, nil)
+            return
+        }
         invitationHandler(true, session)
     }
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) {
@@ -438,7 +486,8 @@ extension PTTAudioService: MCNearbyServiceBrowserDelegate {
         let peerOrg = info?["org"] ?? ""
         guard peerOrg == currentOrgCode else { return }
         guard let session = session else { return }
-        browser.invitePeer(peerID, to: session, withContext: nil, timeout: 10)
+        // Carry our org in the context so the other side can verify on accept.
+        browser.invitePeer(peerID, to: session, withContext: currentOrgCode.data(using: .utf8), timeout: 10)
     }
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}
     func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) {

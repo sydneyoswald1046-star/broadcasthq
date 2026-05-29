@@ -563,17 +563,59 @@ class FirestoreService {
         let startedAt: Date
     }
     
-    func startTransmitting(userId: String, userName: String, channel: String) async throws {
-        try await orgRef().collection("ptt").document("active").setData([
-            "userId": userId, "userName": userName, "channel": channel,
-            "startedAt": Timestamp(date: Date()), "active": true,
-        ])
+    /// Atomically claim the org's single PTT lock. Returns false if someone else is
+    /// already transmitting (and their claim is fresh, < 30s), so two simultaneous
+    /// presses can't both win the channel.
+    func startTransmitting(userId: String, userName: String, channel: String) async throws -> Bool {
+        let ref = orgRef().collection("ptt").document("active")
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Bool, Error>) in
+            db.runTransaction({ (txn, errorPointer) -> Any? in
+                let snap: DocumentSnapshot
+                do { snap = try txn.getDocument(ref) } catch let err as NSError {
+                    errorPointer?.pointee = err
+                    return false
+                }
+                if let d = snap.data(), (d["active"] as? Bool ?? false),
+                   let other = d["userId"] as? String, !other.isEmpty, other != userId,
+                   let ts = (d["startedAt"] as? Timestamp)?.dateValue(),
+                   Date().timeIntervalSince(ts) < 30 {
+                    return false // someone else is actively transmitting
+                }
+                txn.setData([
+                    "userId": userId, "userName": userName, "channel": channel,
+                    "startedAt": Timestamp(date: Date()), "active": true,
+                ], forDocument: ref)
+                return true
+            }) { (result, error) in
+                if let error = error { cont.resume(throwing: error) }
+                else { cont.resume(returning: (result as? Bool) ?? false) }
+            }
+        }
     }
-    
-    func stopTransmitting() async throws {
-        try await orgRef().collection("ptt").document("active").setData([
-            "active": false, "userId": "", "userName": "", "channel": "", "stoppedAt": Timestamp(date: Date()),
-        ])
+
+    /// Release the lock only if the caller owns it — a stale/duplicate stop can't
+    /// clear another user's active transmission.
+    func stopTransmitting(userId: String) async throws {
+        let ref = orgRef().collection("ptt").document("active")
+        _ = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Bool, Error>) in
+            db.runTransaction({ (txn, errorPointer) -> Any? in
+                let snap: DocumentSnapshot
+                do { snap = try txn.getDocument(ref) } catch let err as NSError {
+                    errorPointer?.pointee = err
+                    return false
+                }
+                if let d = snap.data(), let owner = d["userId"] as? String, owner == userId {
+                    txn.setData([
+                        "active": false, "userId": "", "userName": "", "channel": "",
+                        "stoppedAt": Timestamp(date: Date()),
+                    ], forDocument: ref)
+                }
+                return true
+            }) { (result, error) in
+                if let error = error { cont.resume(throwing: error) }
+                else { cont.resume(returning: true) }
+            }
+        }
     }
     
     func listenToPTT(onChange: @escaping (PTTState?) -> Void) -> ListenerRegistration {

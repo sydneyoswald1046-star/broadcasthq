@@ -171,10 +171,12 @@ class AuthState: ObservableObject {
         accountsListener?.remove(); broadcastListener?.remove(); segmentsListener?.remove()
         equipmentListener?.remove(); messagesListener?.remove(); alertsListener?.remove(); pttListener?.remove()
         
-        // Reset PTT state on fresh login
+        // Reset PTT state on fresh login. Only clear the shared lock if it's our own
+        // stale claim (e.g. from a prior crashed session) — never cut off a teammate
+        // who is actively transmitting when we log in.
         isLocalTransmitting = false
         activePTT = nil
-        Task { try? await firestore.stopTransmitting() }
+        if let uid = currentUser?.id { Task { try? await firestore.stopTransmitting(userId: uid) } }
         
         accountsListener = firestore.listenToAccounts { [weak self] accounts in
             DispatchQueue.main.async {
@@ -362,18 +364,26 @@ class AuthState: ObservableObject {
     func startPTT(channel: String) {
         guard let user = currentUser else { return }
         if isChannelBusy { return }
+        // Start capturing immediately for low latency, then claim the shared lock.
+        // If another user won the race, roll back so we don't talk over them.
         isLocalTransmitting = true
         PTTAudioService.shared.startCapturing(channel: channel)
-        Task { try? await firestore.startTransmitting(userId: user.id, userName: user.displayName, channel: channel) }
+        Task {
+            let claimed = (try? await firestore.startTransmitting(userId: user.id, userName: user.displayName, channel: channel)) ?? false
+            if !claimed {
+                await MainActor.run {
+                    self.isLocalTransmitting = false
+                    PTTAudioService.shared.stopCapturing()
+                }
+            }
+        }
     }
-    
+
     func stopPTT() {
         isLocalTransmitting = false
-        DispatchQueue.global(qos: .background).async {
-            PTTAudioService.shared.stopCapturing()
-        }
-        if !firestore.orgCode.isEmpty {
-            Task { try? await firestore.stopTransmitting() }
+        PTTAudioService.shared.stopCapturing() // main thread — safe AVAudioEngine teardown
+        if !firestore.orgCode.isEmpty, let uid = currentUser?.id {
+            Task { try? await firestore.stopTransmitting(userId: uid) }
         }
     }
     
@@ -385,9 +395,7 @@ class AuthState: ObservableObject {
     }
     
     func stopAudioService() {
-        DispatchQueue.global(qos: .background).async {
-            PTTAudioService.shared.stop()
-        }
+        PTTAudioService.shared.stop() // main thread — AVAudioEngine teardown belongs on main
     }
     
     // MARK: - Auth
@@ -624,11 +632,8 @@ class AuthState: ObservableObject {
             Task { try? await firestore.updatePresence(orgCode: offlineOrg, userId: offlineUserId, status: "offline") }
         }
         
-        // Stop PTT in background
-        DispatchQueue.global(qos: .background).async {
-            PTTAudioService.shared.stopCapturing()
-            PTTAudioService.shared.stop()
-        }
+        // Stop PTT (stop() also stops capture). On main — AVAudioEngine teardown.
+        PTTAudioService.shared.stop()
         
         // Clear data
         firestore.orgCode = ""
