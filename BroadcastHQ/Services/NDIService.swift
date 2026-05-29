@@ -52,8 +52,6 @@ class NDIService: ObservableObject {
     private var isReceiving: Bool = false
     private var isFinding: Bool = false
 
-    private var sourceCache: [String: NDIlib_source_t] = [:]
-
     init() {
         initialize()
     }
@@ -103,34 +101,44 @@ class NDIService: ObservableObject {
         findQueue?.async { [weak self] in
             guard let self = self else { return }
 
-            // Wait for sources (up to 5 seconds)
-            let _ = NDIlib_find_wait_for_sources(finder, 5000)
+            // NDI discovery (mDNS) is asynchronous — a source often appears a second or
+            // two after the finder starts. Poll for up to ~12s and reveal the list as
+            // soon as anything shows up, instead of taking a single 5s snapshot (which
+            // frequently comes back empty on the first try even when a source exists).
+            let deadline = Date().addingTimeInterval(12)
+            repeat {
+                let _ = NDIlib_find_wait_for_sources(finder, 1000) // wait up to 1s for a change
 
-            var numSources: UInt32 = 0
-            let sourcesPtr = NDIlib_find_get_current_sources(finder, &numSources)
+                var numSources: UInt32 = 0
+                let sourcesPtr = NDIlib_find_get_current_sources(finder, &numSources)
 
-            var names: [String] = []
-            var cache: [String: NDIlib_source_t] = [:]
-
-            if let ptr = sourcesPtr, numSources > 0 {
-                for i in 0..<Int(numSources) {
-                    let source = ptr[i]
-                    if let namePtr = source.p_ndi_name {
-                        let name = String(cString: namePtr)
-                        names.append(name)
-                        cache[name] = source
+                var names: [String] = []
+                if let ptr = sourcesPtr, numSources > 0 {
+                    for i in 0..<Int(numSources) {
+                        if let namePtr = ptr[i].p_ndi_name {
+                            names.append(String(cString: namePtr))
+                        }
                     }
                 }
-            }
+
+                let current = names
+                DispatchQueue.main.async {
+                    self.availableSources = current
+                    if !current.isEmpty {
+                        self.lastError = nil
+                        self.isSearching = false // reveal the list immediately
+                    }
+                }
+
+                // Stop once we've found at least one source. This also leaves the finder
+                // idle so connect(to:) can safely re-query it without a data race.
+                if !names.isEmpty { break }
+            } while self.isFinding && Date() < deadline
 
             DispatchQueue.main.async {
-                self.availableSources = names
-                self.sourceCache = cache
                 self.isSearching = false
-                if names.isEmpty {
+                if self.availableSources.isEmpty {
                     self.lastError = "No NDI sources found on this network"
-                } else {
-                    self.lastError = nil
                 }
             }
             self.isFinding = false
@@ -145,14 +153,29 @@ class NDIService: ObservableObject {
     // MARK: - Connect to Source
 
     func connect(to sourceName: String) {
-        guard isInitialized else { return }
-        guard let source = sourceCache[sourceName] else {
-            DispatchQueue.main.async { self.lastError = "Source not found" }
-            return
-        }
+        guard isInitialized, let finder = finder else { return }
 
         // Disconnect existing
         disconnect()
+
+        // Resolve the name to a *fresh* source pointer. The NDIlib_source_t structs from
+        // get_current_sources are owned by the finder and their C string pointers can
+        // dangle if cached, so we look the source up live, immediately before connecting.
+        var numSources: UInt32 = 0
+        let sourcesPtr = NDIlib_find_get_current_sources(finder, &numSources)
+        var resolved: NDIlib_source_t?
+        if let ptr = sourcesPtr, numSources > 0 {
+            for i in 0..<Int(numSources) {
+                if let namePtr = ptr[i].p_ndi_name, String(cString: namePtr) == sourceName {
+                    resolved = ptr[i]
+                    break
+                }
+            }
+        }
+        guard let source = resolved else {
+            DispatchQueue.main.async { self.lastError = "Source not found" }
+            return
+        }
 
         // Create receiver
         var recvSettings = NDIlib_recv_create_v3_t()

@@ -83,6 +83,7 @@ struct ContentView: View {
             if authState.isBroadcastLive { volumePTT.activate() }
             authState.startAudioService()
             UIApplication.shared.isIdleTimerDisabled = true
+            ExternalScreenManager.shared.configure(authState: authState, settings: settings)
         }
         .onDisappear {
             volumePTT.deactivate()

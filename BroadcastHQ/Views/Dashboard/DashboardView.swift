@@ -10,6 +10,8 @@ struct DashboardView: View {
     
     @State private var timerTick: Int = 0
     @State private var showTeamRoster: Bool = false
+    @ObservedObject private var externalScreen = ExternalScreenManager.shared
+    @State private var showAirplayHint: Bool = false
     
     private var members: [AppUser] {
         authState.accounts.filter { $0.isApproved }.map { $0.toAppUser() }
@@ -78,6 +80,26 @@ struct DashboardView: View {
         .alert("End Broadcast", isPresented: $showEndLiveConfirm) {
             Button("End Broadcast", role: .destructive) { endBroadcast() }; Button("Cancel", role: .cancel) { }
         } message: { Text("This will end the live broadcast and mark all remaining segments as completed.") }
+        .alert("Show Timer on a Screen", isPresented: $showAirplayHint) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Connect to your Apple TV first: open Control Center → Screen Mirroring → pick the display. Then tap this button to put the broadcast timer on the big screen.")
+        }
+    }
+
+    // MARK: - AirPlay / External Screen button (lives in the timer square)
+    private var airplayButton: some View {
+        Button {
+            if externalScreen.isScreenConnected { externalScreen.toggle() } else { showAirplayHint = true }
+        } label: {
+            Image(systemName: externalScreen.isShowing ? "tv.fill" : (externalScreen.isScreenConnected ? "tv" : "tv.badge.wifi"))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(externalScreen.isShowing ? Color.bhqGreen : Color.secondary)
+                .frame(width: 30, height: 30)
+                .background(Color(.systemFill).opacity(0.6))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
     
     private func nextEventBanner(event: BroadcastEvent) -> some View {
@@ -122,6 +144,7 @@ struct DashboardView: View {
             Text("Total runtime: \(Segment.formatTime(segments.reduce(0) { $0 + $1.duration }))").font(.system(size: 13)).foregroundStyle(Color.secondary.opacity(0.7))
         }.frame(maxWidth: .infinity).padding(24).background(Color.bhqCard)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.bhqGreen.opacity(0.15), lineWidth: 0.5))
+        .overlay(alignment: .topTrailing) { airplayButton.padding(12) }
         .clipShape(RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
     }
     
@@ -156,7 +179,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack { HStack(spacing: 6) { Circle().fill(Color.bhqTint).frame(width: 7, height: 7).pulsing()
                 Text("ON AIR").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.bhqTint).tracking(0.5) }
-                Spacer(); Text("Segment \(liveIndex + 1) of \(segments.count)").font(.system(size: 12)).foregroundStyle(Color.secondary) }
+                Spacer(); Text("Segment \(liveIndex + 1) of \(segments.count)").font(.system(size: 12)).foregroundStyle(Color.secondary); airplayButton }
             Text(liveSegment?.title ?? "No active segment").font(.system(size: 22, weight: .bold))
             Text("\(liveSegment?.assignedRole ?? "") · \(liveSegment?.notes ?? "")").font(.subheadline).foregroundStyle(Color.secondary)
             timerDisplay; progressBarInCard

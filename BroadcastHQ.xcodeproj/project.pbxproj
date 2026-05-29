@@ -469,7 +469,10 @@
 				);
 				MARKETING_VERSION = 1.1.1;
 				OTHER_LDFLAGS = "-lc++";
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(inherited) -lndi_advanced_ios";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
+					"$(inherited)",
+					"-lndi_advanced_ios",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -516,7 +519,10 @@
 				);
 				MARKETING_VERSION = 1.1.1;
 				OTHER_LDFLAGS = "-lc++";
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(inherited) -lndi_advanced_ios";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
+					"$(inherited)",
+					"-lndi_advanced_ios",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
