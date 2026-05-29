@@ -616,9 +616,12 @@ class AuthState: ObservableObject {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
         
-        // Go offline before clearing data
-        if let userId = currentUser?.id, !firestore.orgCode.isEmpty {
-            Task { try? await firestore.updatePresence(userId: userId, status: "offline") }
+        // Go offline before clearing data. Capture org + user up front — orgCode is
+        // cleared synchronously just below, and the async write must not build a path
+        // from the (by-then empty) orgCode, which throws a fatal Firestore exception.
+        let offlineOrg = firestore.orgCode
+        if let offlineUserId = currentUser?.id, !offlineOrg.isEmpty {
+            Task { try? await firestore.updatePresence(orgCode: offlineOrg, userId: offlineUserId, status: "offline") }
         }
         
         // Stop PTT in background

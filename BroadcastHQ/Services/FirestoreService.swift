@@ -534,9 +534,18 @@ class FirestoreService {
     // MARK: - Presence
     
     func updatePresence(userId: String, status: String) async throws {
-        try await orgRef().collection("users").document(userId).updateData([
-            "presence": status, "lastSeen": Timestamp(date: Date()),
-        ])
+        try await updatePresence(orgCode: orgCode, userId: userId, status: status)
+    }
+
+    /// Explicit-org variant. Used during logout, where `orgCode` is cleared
+    /// synchronously and an async presence write must not race against it.
+    /// Empty paths are skipped — `document("")` throws a fatal Firestore exception.
+    func updatePresence(orgCode: String, userId: String, status: String) async throws {
+        guard !orgCode.isEmpty, !userId.isEmpty else { return }
+        try await db.collection("organizations").document(orgCode)
+            .collection("users").document(userId).updateData([
+                "presence": status, "lastSeen": Timestamp(date: Date()),
+            ])
     }
     
     func saveFCMToken(userId: String, token: String) async throws {
