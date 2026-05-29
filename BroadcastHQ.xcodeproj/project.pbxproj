@@ -6,6 +6,63 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CD259EAB2FA283B500F7FDC4 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD259EAA2FA283B100F7FDC4 /* AppleSignInService.swift */; };
+		CD51E3F72FA16BA100A11FAA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = CD51E3F62FA16BA100A11FAA /* FirebaseStorage */; };
+		CD51E3F92FA16FB700A11FAA /* ProfileImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD51E3F82FA16FA400A11FAA /* ProfileImageService.swift */; };
+		CD51E3FB2FA16FEA00A11FAA /* ProfileAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD51E3FA2FA16FDE00A11FAA /* ProfileAvatar.swift */; };
+		CD5914C92FC9F67800652F43 /* libndi_advanced_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914C82FC9F67800652F43 /* libndi_advanced_ios.a */; };
+		CD5914CB2FC9FB3500652F43 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914CA2FC9FB3500652F43 /* Accelerate.framework */; };
+		CD5914CD2FC9FB8700652F43 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914CC2FC9FB8700652F43 /* VideoToolbox.framework */; };
+		CDA1E30B2F8571EF008DF139 /* Color+Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E30A2F8571AC008DF139 /* Color+Theme.swift */; };
+		CDA1E30D2F857268008DF139 /* AppUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E30C2F857246008DF139 /* AppUser.swift */; };
+		CDA1E30F2F857288008DF139 /* Team.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E30E2F857284008DF139 /* Team.swift */; };
+		CDA1E3112F85729E008DF139 /* Segment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3102F857299008DF139 /* Segment.swift */; };
+		CDA1E3132F8572B7008DF139 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3122F8572AC008DF139 /* ChatMessage.swift */; };
+		CDA1E3152F8572D3008DF139 /* Equipment.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3142F8572C9008DF139 /* Equipment.swift */; };
+		CDA1E3172F85735F008DF139 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3162F85734F008DF139 /* SharedComponents.swift */; };
+		CDA1E3192F857392008DF139 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3182F857387008DF139 /* DashboardView.swift */; };
+		CDA1E31B2F8573CB008DF139 /* RundownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E31A2F8573C2008DF139 /* RundownView.swift */; };
+		CDA1E31D2F8573E3008DF139 /* CommsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E31C2F8573DC008DF139 /* CommsView.swift */; };
+		CDA1E31F2F857407008DF139 /* EquipmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E31E2F8573F8008DF139 /* EquipmentView.swift */; };
+		CDA1E3212F859405008DF139 /* TeamRosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3202F8593E9008DF139 /* TeamRosterView.swift */; };
+		CDA1E3232F85C540008DF139 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3222F85C529008DF139 /* SplashView.swift */; };
+		CDA1E3252F85CA03008DF139 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3242F85C9F8008DF139 /* ProfileView.swift */; };
+		CDA1E3272F85CCEE008DF139 /* MemberDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3262F85CCCC008DF139 /* MemberDetailView.swift */; };
+		CDA1E3292F85CF9E008DF139 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3282F85CF92008DF139 /* NotificationsView.swift */; };
+		CDA1E32D2F85D4CA008DF139 /* DirectMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E32C2F85D4BC008DF139 /* DirectMessageView.swift */; };
+		CDA1E3312F86C027008DF139 /* MemberDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3302F86BFC0008DF139 /* MemberDashboardView.swift */; };
+		CDA1E3332F86DAA7008DF139 /* AuthState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3322F86DA8C008DF139 /* AuthState.swift */; };
+		CDA1E3352F86DAD6008DF139 /* PinLogin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3342F86DACF008DF139 /* PinLogin.swift */; };
+		CDA1E3372F86DAF9008DF139 /* SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3362F86DAF1008DF139 /* SignupView.swift */; };
+		CDA1E3392F86DB3D008DF139 /* PendingApprovalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3382F86DB14008DF139 /* PendingApprovalView.swift */; };
+		CDA1E33B2F86DB5F008DF139 /* AdminApprovalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E33A2F86DB56008DF139 /* AdminApprovalView.swift */; };
+		CDA1E33D2F86E6BB008DF139 /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E33C2F86E6AA008DF139 /* NotificationSettingsView.swift */; };
+		CDA1E33F2F86E6D8008DF139 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E33E2F86E6C8008DF139 /* AppearanceSettingsView.swift */; };
+		CDA1E3412F86E705008DF139 /* HelpSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3402F86E6FD008DF139 /* HelpSupportView.swift */; };
+		CDA1E3432F86E92D008DF139 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1E3422F86E91D008DF139 /* AppSettings.swift */; };
+		CDA3AEC82FA64142004872CB /* TeamAlertBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA3AEC72FA64132004872CB /* TeamAlertBanner.swift */; };
+		CDA3AED62FA92C6A004872CB /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA3AED52FA92C49004872CB /* PushNotificationService.swift */; };
+		CDA3AED82FAE73D2004872CB /* FCMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA3AED72FAE73C6004872CB /* FCMService.swift */; };
+		CDA3AEDA2FAE74E3004872CB /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CDA3AED92FAE74E3004872CB /* FirebaseMessaging */; };
+		CDC6B1822F8EB66D008F06A6 /* PTTAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC6B1812F8EB65D008F06A6 /* PTTAudioService.swift */; };
+		CDC6B1902F8F0715008F06A6 /* DMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC6B18F2F8F070B008F06A6 /* DMView.swift */; };
+		CDC6B1922F8F0A1E008F06A6 /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC6B1912F8F0A13008F06A6 /* PermissionsView.swift */; };
+		CDDC00C42FC475D000076292 /* NDIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDC00C32FC475D000076292 /* NDIService.swift */; };
+		CDDC00C62FC475E500076292 /* NDIMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDDC00C52FC475E500076292 /* NDIMonitorView.swift */; };
+		CDE1F0212F8909FA004A81D4 /* AdminPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1F0202F8909F1004A81D4 /* AdminPanelView.swift */; };
+		CDE1F0232F890E18004A81D4 /* EventSchedulerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1F0222F890E0A004A81D4 /* EventSchedulerView.swift */; };
+		CDE1F0252F890E51004A81D4 /* SegmentChangeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1F0242F890E3F004A81D4 /* SegmentChangeOverlay.swift */; };
+		CDE1F02B2F891A18004A81D4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CDE1F02A2F891A18004A81D4 /* FirebaseAuth */; };
+		CDE1F02D2F891A18004A81D4 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CDE1F02C2F891A18004A81D4 /* FirebaseFirestore */; };
+		CDE1F02F2F891B7B004A81D4 /* FirestoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1F02E2F891B6C004A81D4 /* FirestoreService.swift */; };
+		CDE1F0322F892473004A81D4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = CDE1F0312F892473004A81D4 /* GoogleSignIn */; };
+		CDE1F0342F892A30004A81D4 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = CDE1F0332F892A30004A81D4 /* GoogleService-Info.plist */; };
+		CDE1F0352F892A30004A81D4 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = CDE1F0332F892A30004A81D4 /* GoogleService-Info.plist */; };
+		CDE1F0382F892F52004A81D4 /* GoogleSigninService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1F0372F892F3D004A81D4 /* GoogleSigninService.swift */; };
+		CDE1F03A2F893676004A81D4 /* VolumeButtonPTT.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1F0392F893658004A81D4 /* VolumeButtonPTT.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CDA1E2E42F857001008DF139 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,9 +81,60 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CD259EA92FA2838000F7FDC4 /* BroadcastHQ.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BroadcastHQ.entitlements; sourceTree = "<group>"; };
+		CD259EAA2FA283B100F7FDC4 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
+		CD51E3F82FA16FA400A11FAA /* ProfileImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileImageService.swift; sourceTree = "<group>"; };
+		CD51E3FA2FA16FDE00A11FAA /* ProfileAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatar.swift; sourceTree = "<group>"; };
+		CD5914C82FC9F67800652F43 /* libndi_advanced_ios.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libndi_advanced_ios.a; sourceTree = "<group>"; };
+		CD5914CA2FC9FB3500652F43 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		CD5914CC2FC9FB8700652F43 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		CDA1E2D62F856FFF008DF139 /* BroadcastHQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BroadcastHQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDA1E2E32F857001008DF139 /* BroadcastHQTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BroadcastHQTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDA1E2ED2F857001008DF139 /* BroadcastHQUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BroadcastHQUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDA1E30A2F8571AC008DF139 /* Color+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Theme.swift"; sourceTree = "<group>"; };
+		CDA1E30C2F857246008DF139 /* AppUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUser.swift; sourceTree = "<group>"; };
+		CDA1E30E2F857284008DF139 /* Team.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Team.swift; sourceTree = "<group>"; };
+		CDA1E3102F857299008DF139 /* Segment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Segment.swift; sourceTree = "<group>"; };
+		CDA1E3122F8572AC008DF139 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		CDA1E3142F8572C9008DF139 /* Equipment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Equipment.swift; sourceTree = "<group>"; };
+		CDA1E3162F85734F008DF139 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
+		CDA1E3182F857387008DF139 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		CDA1E31A2F8573C2008DF139 /* RundownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RundownView.swift; sourceTree = "<group>"; };
+		CDA1E31C2F8573DC008DF139 /* CommsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommsView.swift; sourceTree = "<group>"; };
+		CDA1E31E2F8573F8008DF139 /* EquipmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EquipmentView.swift; sourceTree = "<group>"; };
+		CDA1E3202F8593E9008DF139 /* TeamRosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamRosterView.swift; sourceTree = "<group>"; };
+		CDA1E3222F85C529008DF139 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		CDA1E3242F85C9F8008DF139 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		CDA1E3262F85CCCC008DF139 /* MemberDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberDetailView.swift; sourceTree = "<group>"; };
+		CDA1E3282F85CF92008DF139 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		CDA1E32C2F85D4BC008DF139 /* DirectMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectMessageView.swift; sourceTree = "<group>"; };
+		CDA1E3302F86BFC0008DF139 /* MemberDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberDashboardView.swift; sourceTree = "<group>"; };
+		CDA1E3322F86DA8C008DF139 /* AuthState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthState.swift; sourceTree = "<group>"; };
+		CDA1E3342F86DACF008DF139 /* PinLogin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinLogin.swift; sourceTree = "<group>"; };
+		CDA1E3362F86DAF1008DF139 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
+		CDA1E3382F86DB14008DF139 /* PendingApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingApprovalView.swift; sourceTree = "<group>"; };
+		CDA1E33A2F86DB56008DF139 /* AdminApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminApprovalView.swift; sourceTree = "<group>"; };
+		CDA1E33C2F86E6AA008DF139 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
+		CDA1E33E2F86E6C8008DF139 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsView.swift; sourceTree = "<group>"; };
+		CDA1E3402F86E6FD008DF139 /* HelpSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpSupportView.swift; sourceTree = "<group>"; };
+		CDA1E3422F86E91D008DF139 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		CDA3AEC72FA64132004872CB /* TeamAlertBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamAlertBanner.swift; sourceTree = "<group>"; };
+		CDA3AED52FA92C49004872CB /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
+		CDA3AED72FAE73C6004872CB /* FCMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FCMService.swift; sourceTree = "<group>"; };
+		CDC6B1812F8EB65D008F06A6 /* PTTAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTTAudioService.swift; sourceTree = "<group>"; };
+		CDC6B18F2F8F070B008F06A6 /* DMView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMView.swift; sourceTree = "<group>"; };
+		CDC6B1912F8F0A13008F06A6 /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
+		CDDC00C22FC475B100076292 /* BroadcastHQ-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BroadcastHQ-Bridging-Header.h"; sourceTree = "<group>"; };
+		CDDC00C32FC475D000076292 /* NDIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NDIService.swift; sourceTree = "<group>"; };
+		CDDC00C52FC475E500076292 /* NDIMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NDIMonitorView.swift; sourceTree = "<group>"; };
+		CDE1F0202F8909F1004A81D4 /* AdminPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPanelView.swift; sourceTree = "<group>"; };
+		CDE1F0222F890E0A004A81D4 /* EventSchedulerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventSchedulerView.swift; sourceTree = "<group>"; };
+		CDE1F0242F890E3F004A81D4 /* SegmentChangeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentChangeOverlay.swift; sourceTree = "<group>"; };
+		CDE1F02E2F891B6C004A81D4 /* FirestoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirestoreService.swift; sourceTree = "<group>"; };
+		CDE1F0332F892A30004A81D4 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		CDE1F0362F892E4E004A81D4 /* BroadcastHQ-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "BroadcastHQ-Info.plist"; sourceTree = "<group>"; };
+		CDE1F0372F892F3D004A81D4 /* GoogleSigninService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSigninService.swift; sourceTree = "<group>"; };
+		CDE1F0392F893658004A81D4 /* VolumeButtonPTT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeButtonPTT.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +160,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD5914CD2FC9FB8700652F43 /* VideoToolbox.framework in Frameworks */,
+				CDE1F02B2F891A18004A81D4 /* FirebaseAuth in Frameworks */,
+				CD5914CB2FC9FB3500652F43 /* Accelerate.framework in Frameworks */,
+				CD51E3F72FA16BA100A11FAA /* FirebaseStorage in Frameworks */,
+				CDA3AEDA2FAE74E3004872CB /* FirebaseMessaging in Frameworks */,
+				CDE1F02D2F891A18004A81D4 /* FirebaseFirestore in Frameworks */,
+				CDE1F0322F892473004A81D4 /* GoogleSignIn in Frameworks */,
+				CD5914C92FC9F67800652F43 /* libndi_advanced_ios.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,13 +188,28 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CD51E3F52FA16BA000A11FAA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CD5914CC2FC9FB8700652F43 /* VideoToolbox.framework */,
+				CD5914CA2FC9FB3500652F43 /* Accelerate.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		CDA1E2CD2F856FFF008DF139 = {
 			isa = PBXGroup;
 			children = (
-				CDA1E2D82F856FFF008DF139 /* BroadcastHQ */,
+				CD5914C82FC9F67800652F43 /* libndi_advanced_ios.a */,
+				CDDC00C22FC475B100076292 /* BroadcastHQ-Bridging-Header.h */,
+				CD259EA92FA2838000F7FDC4 /* BroadcastHQ.entitlements */,
+				CDE1F0362F892E4E004A81D4 /* BroadcastHQ-Info.plist */,
+				CDA1E3002F85706B008DF139 /* models */,
 				CDA1E2E62F857001008DF139 /* BroadcastHQTests */,
 				CDA1E2F02F857001008DF139 /* BroadcastHQUITests */,
 				CDA1E2D72F856FFF008DF139 /* Products */,
+				CDE1F0332F892A30004A81D4 /* GoogleService-Info.plist */,
+				CD51E3F52FA16BA000A11FAA /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -90,6 +221,130 @@
 				CDA1E2ED2F857001008DF139 /* BroadcastHQUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CDA1E3002F85706B008DF139 /* models */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E3142F8572C9008DF139 /* Equipment.swift */,
+				CDA1E3122F8572AC008DF139 /* ChatMessage.swift */,
+				CDA1E3102F857299008DF139 /* Segment.swift */,
+				CDA1E30E2F857284008DF139 /* Team.swift */,
+				CDA1E30C2F857246008DF139 /* AppUser.swift */,
+				CDA1E3012F857093008DF139 /* Services */,
+			);
+			path = models;
+			sourceTree = "<group>";
+		};
+		CDA1E3012F857093008DF139 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				CDDC00C32FC475D000076292 /* NDIService.swift */,
+				CDA3AED72FAE73C6004872CB /* FCMService.swift */,
+				CDA3AED52FA92C49004872CB /* PushNotificationService.swift */,
+				CD259EAA2FA283B100F7FDC4 /* AppleSignInService.swift */,
+				CD51E3F82FA16FA400A11FAA /* ProfileImageService.swift */,
+				CDC6B1812F8EB65D008F06A6 /* PTTAudioService.swift */,
+				CDE1F0392F893658004A81D4 /* VolumeButtonPTT.swift */,
+				CDE1F0372F892F3D004A81D4 /* GoogleSigninService.swift */,
+				CDE1F02E2F891B6C004A81D4 /* FirestoreService.swift */,
+				CDA1E3422F86E91D008DF139 /* AppSettings.swift */,
+				CDA1E3322F86DA8C008DF139 /* AuthState.swift */,
+				CDA1E3022F85709F008DF139 /* viewmodels */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		CDA1E3022F85709F008DF139 /* viewmodels */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E3032F8570AA008DF139 /* views */,
+			);
+			path = viewmodels;
+			sourceTree = "<group>";
+		};
+		CDA1E3032F8570AA008DF139 /* views */ = {
+			isa = PBXGroup;
+			children = (
+				CDDC00C52FC475E500076292 /* NDIMonitorView.swift */,
+				CDC6B1912F8F0A13008F06A6 /* PermissionsView.swift */,
+				CDC6B18F2F8F070B008F06A6 /* DMView.swift */,
+				CDE1F0222F890E0A004A81D4 /* EventSchedulerView.swift */,
+				CDE1F0202F8909F1004A81D4 /* AdminPanelView.swift */,
+				CDA1E3402F86E6FD008DF139 /* HelpSupportView.swift */,
+				CDA1E33E2F86E6C8008DF139 /* AppearanceSettingsView.swift */,
+				CDA1E33C2F86E6AA008DF139 /* NotificationSettingsView.swift */,
+				CDA1E33A2F86DB56008DF139 /* AdminApprovalView.swift */,
+				CDA1E3382F86DB14008DF139 /* PendingApprovalView.swift */,
+				CDA1E3362F86DAF1008DF139 /* SignupView.swift */,
+				CDA1E3342F86DACF008DF139 /* PinLogin.swift */,
+				CDA1E3282F85CF92008DF139 /* NotificationsView.swift */,
+				CDA1E3262F85CCCC008DF139 /* MemberDetailView.swift */,
+				CDA1E3242F85C9F8008DF139 /* ProfileView.swift */,
+				CDA1E3222F85C529008DF139 /* SplashView.swift */,
+				CDA1E3202F8593E9008DF139 /* TeamRosterView.swift */,
+				CDA1E3092F8570E3008DF139 /* components */,
+				CDA1E3082F8570D9008DF139 /* equipment */,
+				CDA1E3072F8570D3008DF139 /* comms */,
+				CDA1E3062F8570CB008DF139 /* rundown */,
+				CDA1E3052F8570C1008DF139 /* dashboard */,
+				CDA1E3042F8570B2008DF139 /* extensions */,
+			);
+			path = views;
+			sourceTree = "<group>";
+		};
+		CDA1E3042F8570B2008DF139 /* extensions */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E30A2F8571AC008DF139 /* Color+Theme.swift */,
+				CDA1E2D82F856FFF008DF139 /* BroadcastHQ */,
+			);
+			path = extensions;
+			sourceTree = "<group>";
+		};
+		CDA1E3052F8570C1008DF139 /* dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E3302F86BFC0008DF139 /* MemberDashboardView.swift */,
+				CDA1E3182F857387008DF139 /* DashboardView.swift */,
+			);
+			path = dashboard;
+			sourceTree = "<group>";
+		};
+		CDA1E3062F8570CB008DF139 /* rundown */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E31A2F8573C2008DF139 /* RundownView.swift */,
+			);
+			path = rundown;
+			sourceTree = "<group>";
+		};
+		CDA1E3072F8570D3008DF139 /* comms */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E32C2F85D4BC008DF139 /* DirectMessageView.swift */,
+				CDA1E31C2F8573DC008DF139 /* CommsView.swift */,
+			);
+			path = comms;
+			sourceTree = "<group>";
+		};
+		CDA1E3082F8570D9008DF139 /* equipment */ = {
+			isa = PBXGroup;
+			children = (
+				CDA1E31E2F8573F8008DF139 /* EquipmentView.swift */,
+			);
+			path = equipment;
+			sourceTree = "<group>";
+		};
+		CDA1E3092F8570E3008DF139 /* components */ = {
+			isa = PBXGroup;
+			children = (
+				CDA3AEC72FA64132004872CB /* TeamAlertBanner.swift */,
+				CD51E3FA2FA16FDE00A11FAA /* ProfileAvatar.swift */,
+				CDE1F0242F890E3F004A81D4 /* SegmentChangeOverlay.swift */,
+				CDA1E3162F85734F008DF139 /* SharedComponents.swift */,
+			);
+			path = components;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +367,11 @@
 			);
 			name = BroadcastHQ;
 			packageProductDependencies = (
+				CDE1F02A2F891A18004A81D4 /* FirebaseAuth */,
+				CDE1F02C2F891A18004A81D4 /* FirebaseFirestore */,
+				CDE1F0312F892473004A81D4 /* GoogleSignIn */,
+				CD51E3F62FA16BA100A11FAA /* FirebaseStorage */,
+				CDA3AED92FAE74E3004872CB /* FirebaseMessaging */,
 			);
 			productName = BroadcastHQ;
 			productReference = CDA1E2D62F856FFF008DF139 /* BroadcastHQ.app */;
@@ -195,6 +455,10 @@
 			);
 			mainGroup = CDA1E2CD2F856FFF008DF139;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				CDE1F0302F892473004A81D4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CDA1E2D72F856FFF008DF139 /* Products */;
 			projectDirPath = "";
@@ -212,6 +476,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDE1F0352F892A30004A81D4 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,6 +484,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDE1F0342F892A30004A81D4 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,6 +502,50 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDE1F03A2F893676004A81D4 /* VolumeButtonPTT.swift in Sources */,
+				CDA1E3132F8572B7008DF139 /* ChatMessage.swift in Sources */,
+				CDA3AED82FAE73D2004872CB /* FCMService.swift in Sources */,
+				CDA1E30D2F857268008DF139 /* AppUser.swift in Sources */,
+				CDC6B1922F8F0A1E008F06A6 /* PermissionsView.swift in Sources */,
+				CDA1E3232F85C540008DF139 /* SplashView.swift in Sources */,
+				CDA1E3152F8572D3008DF139 /* Equipment.swift in Sources */,
+				CD51E3FB2FA16FEA00A11FAA /* ProfileAvatar.swift in Sources */,
+				CDA1E3272F85CCEE008DF139 /* MemberDetailView.swift in Sources */,
+				CDA1E3172F85735F008DF139 /* SharedComponents.swift in Sources */,
+				CDC6B1902F8F0715008F06A6 /* DMView.swift in Sources */,
+				CDA1E3212F859405008DF139 /* TeamRosterView.swift in Sources */,
+				CDA1E31D2F8573E3008DF139 /* CommsView.swift in Sources */,
+				CDA1E32D2F85D4CA008DF139 /* DirectMessageView.swift in Sources */,
+				CD51E3F92FA16FB700A11FAA /* ProfileImageService.swift in Sources */,
+				CDA1E33B2F86DB5F008DF139 /* AdminApprovalView.swift in Sources */,
+				CDC6B1822F8EB66D008F06A6 /* PTTAudioService.swift in Sources */,
+				CDA1E3432F86E92D008DF139 /* AppSettings.swift in Sources */,
+				CDA1E3392F86DB3D008DF139 /* PendingApprovalView.swift in Sources */,
+				CDA1E3352F86DAD6008DF139 /* PinLogin.swift in Sources */,
+				CD259EAB2FA283B500F7FDC4 /* AppleSignInService.swift in Sources */,
+				CDA1E3112F85729E008DF139 /* Segment.swift in Sources */,
+				CDE1F0252F890E51004A81D4 /* SegmentChangeOverlay.swift in Sources */,
+				CDA1E3252F85CA03008DF139 /* ProfileView.swift in Sources */,
+				CDE1F0212F8909FA004A81D4 /* AdminPanelView.swift in Sources */,
+				CDA1E31F2F857407008DF139 /* EquipmentView.swift in Sources */,
+				CDA3AEC82FA64142004872CB /* TeamAlertBanner.swift in Sources */,
+				CDA1E30B2F8571EF008DF139 /* Color+Theme.swift in Sources */,
+				CDA1E3332F86DAA7008DF139 /* AuthState.swift in Sources */,
+				CDA1E3412F86E705008DF139 /* HelpSupportView.swift in Sources */,
+				CDA1E31B2F8573CB008DF139 /* RundownView.swift in Sources */,
+				CDDC00C62FC475E500076292 /* NDIMonitorView.swift in Sources */,
+				CDA1E3312F86C027008DF139 /* MemberDashboardView.swift in Sources */,
+				CDE1F02F2F891B7B004A81D4 /* FirestoreService.swift in Sources */,
+				CDA1E3192F857392008DF139 /* DashboardView.swift in Sources */,
+				CDA1E30F2F857288008DF139 /* Team.swift in Sources */,
+				CDE1F0232F890E18004A81D4 /* EventSchedulerView.swift in Sources */,
+				CDA1E3292F85CF9E008DF139 /* NotificationsView.swift in Sources */,
+				CDDC00C42FC475D000076292 /* NDIService.swift in Sources */,
+				CDE1F0382F892F52004A81D4 /* GoogleSigninService.swift in Sources */,
+				CDA3AED62FA92C6A004872CB /* PushNotificationService.swift in Sources */,
+				CDA1E33D2F86E6BB008DF139 /* NotificationSettingsView.swift in Sources */,
+				CDA1E3372F86DAF9008DF139 /* SignupView.swift in Sources */,
+				CDA1E33F2F86E6D8008DF139 /* AppearanceSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -395,27 +705,41 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BroadcastHQ.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NXJXH7TTZP;
+				DEVELOPMENT_TEAM = 752MX8J6RV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = /usr/local/ndi/include;
+				INFOPLIST_FILE = "BroadcastHQ-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Valor Live";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Valor.Live uses your local network to connect with nearby team members for push-to-talk.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Valor.Live uses your microphone for push-to-talk communication with your broadcast team.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MARKETING_VERSION = 1.1.1;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "BroadcastHQ-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -427,27 +751,41 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BroadcastHQ.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NXJXH7TTZP;
+				DEVELOPMENT_TEAM = 752MX8J6RV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = /usr/local/ndi/include;
+				INFOPLIST_FILE = "BroadcastHQ-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Valor Live";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Valor.Live uses your local network to connect with nearby team members for push-to-talk.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Valor.Live uses your microphone for push-to-talk communication with your broadcast team.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MARKETING_VERSION = 1.1.1;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "BroadcastHQ-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -578,6 +916,53 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.0;
+			};
+		};
+		CDE1F0302F892473004A81D4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CD51E3F62FA16BA100A11FAA /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		CDA3AED92FAE74E3004872CB /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		CDE1F02A2F891A18004A81D4 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		CDE1F02C2F891A18004A81D4 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		CDE1F0312F892473004A81D4 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDE1F0302F892473004A81D4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CDA1E2CE2F856FFF008DF139 /* Project object */;
 }
