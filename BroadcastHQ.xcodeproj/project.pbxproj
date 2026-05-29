@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		CD51E3F72FA16BA100A11FAA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = CD51E3F62FA16BA100A11FAA /* FirebaseStorage */; };
-		CD5914C92FC9F67800652F43 /* libndi_advanced_ios.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914C82FC9F67800652F43 /* libndi_advanced_ios.a */; };
 		CD5914CB2FC9FB3500652F43 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914CA2FC9FB3500652F43 /* Accelerate.framework */; };
 		CD5914CD2FC9FB8700652F43 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914CC2FC9FB8700652F43 /* VideoToolbox.framework */; };
 		CDA3AEDA2FAE74E3004872CB /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CDA3AED92FAE74E3004872CB /* FirebaseMessaging */; };
@@ -76,7 +75,6 @@
 				CDA3AEDA2FAE74E3004872CB /* FirebaseMessaging in Frameworks */,
 				CDE1F02D2F891A18004A81D4 /* FirebaseFirestore in Frameworks */,
 				CDE1F0322F892473004A81D4 /* GoogleSignIn in Frameworks */,
-				CD5914C92FC9F67800652F43 /* libndi_advanced_ios.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -471,6 +469,7 @@
 				);
 				MARKETING_VERSION = 1.1.1;
 				OTHER_LDFLAGS = "-lc++";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(inherited) -lndi_advanced_ios";
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -517,6 +516,7 @@
 				);
 				MARKETING_VERSION = 1.1.1;
 				OTHER_LDFLAGS = "-lc++";
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(inherited) -lndi_advanced_ios";
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
