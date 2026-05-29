@@ -7,6 +7,8 @@ struct TeamAlertBanner: View {
     @State private var pulseOpacity: Double = 1.0
     @State private var slideIn: Bool = false
     @State private var timeRemaining: Double = 7.0
+    @State private var countdownTimer: Timer?
+    @State private var didDismiss: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -83,22 +85,31 @@ struct TeamAlertBanner: View {
             // Countdown timer
             startCountdown()
         }
+        .onDisappear {
+            countdownTimer?.invalidate()
+            countdownTimer = nil
+        }
         .onTapGesture {
             dismiss()
         }
     }
-    
+
     private func startCountdown() {
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             timeRemaining -= 0.1
             if timeRemaining <= 0 {
-                timer.invalidate()
                 dismiss()
             }
         }
     }
-    
+
     private func dismiss() {
+        // Guard against firing twice (e.g. tap-to-dismiss while the countdown also expires).
+        // A leftover timer must never dismiss a *later* alert.
+        guard !didDismiss else { return }
+        didDismiss = true
+        countdownTimer?.invalidate()
+        countdownTimer = nil
         withAnimation(.easeIn(duration: 0.3)) {
             slideIn = false
         }

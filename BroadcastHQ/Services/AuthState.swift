@@ -201,7 +201,7 @@ class AuthState: ObservableObject {
             }
         }
         segmentsListener = firestore.listenToSegments { [weak self] segments in
-            DispatchQueue.main.async { if !segments.isEmpty { self?.segments = segments } }
+            DispatchQueue.main.async { self?.segments = segments }
         }
         equipmentListener = firestore.listenToEquipment { [weak self] items in
             DispatchQueue.main.async { self?.equipment = items }

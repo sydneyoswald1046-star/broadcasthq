@@ -438,8 +438,12 @@ class FirestoreService {
     
     func listenToSegments(onChange: @escaping ([Segment]) -> Void) -> ListenerRegistration {
         return orgRef().collection("segments").order(by: "order").addSnapshotListener { snapshot, error in
-            guard let docs = snapshot?.documents, error == nil else { return }
-            let segments = docs.compactMap { doc -> Segment? in
+            guard let snapshot = snapshot, error == nil else { return }
+            // Ignore an empty snapshot that only came from the local cache (e.g. right
+            // after reconnecting) — it would briefly wipe the rundown before the server
+            // copy arrives. A server-confirmed empty IS honored (intentional "Clear All").
+            if snapshot.documents.isEmpty && snapshot.metadata.isFromCache { return }
+            let segments = snapshot.documents.compactMap { doc -> Segment? in
                 let data = doc.data()
                 guard let order = data["order"] as? Int, let title = data["title"] as? String,
                       let duration = data["duration"] as? Int, let assignedRole = data["assignedRole"] as? String,

@@ -112,7 +112,7 @@ struct NotificationsView: View {
         
         // Recent DMs to me (last 20)
         let myId = authState.currentUser?.id ?? ""
-        let myDMs = authState.messages.filter { $0.recipientId == myId }.suffix(10)
+        let myDMs = authState.messages.filter { $0.recipientId == myId }.suffix(20)
         for msg in myDMs {
             items.append(AppNotification(
                 id: "dm-\(msg.id)",

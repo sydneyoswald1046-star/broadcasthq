@@ -141,7 +141,11 @@ struct RundownView: View {
     
     private func advanceSegment() {
         guard let i = segments.firstIndex(where: { $0.status == .live }) else { return }
-        withAnimation { segments[i].status = .completed; if i + 1 < segments.count { segments[i + 1].status = .live } }
+        withAnimation {
+            segments[i].status = .completed
+            if i + 1 < segments.count { segments[i + 1].status = .live }
+            else { authState.setBroadcastLive(false) } // past last segment — end broadcast (matches Dashboard)
+        }
         authState.syncSegments()
     }
     private func goLive(_ id: String) {
@@ -149,7 +153,12 @@ struct RundownView: View {
         authState.syncSegments()
     }
     private func deleteSegment(_ id: String) {
+        let deletedLive = segments.first { $0.id == id }?.status == .live
         withAnimation { segments.removeAll { $0.id == id }; for i in segments.indices { segments[i].order = i } }
+        // If the live segment was deleted while on air, don't leave the broadcast stuck "live" with no active segment.
+        if deletedLive && authState.isBroadcastLive && !segments.contains(where: { $0.status == .live }) {
+            authState.setBroadcastLive(false)
+        }
         authState.syncSegments()
     }
     private func saveCurrentRundown(name: String) {

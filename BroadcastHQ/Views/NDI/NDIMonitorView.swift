@@ -229,7 +229,7 @@ struct NDIMonitorView: View {
                     }
                 } else {
                     List {
-                        ForEach(ndi.availableSources, id: \.self) { source in
+                        ForEach(Array(ndi.availableSources.enumerated()), id: \.offset) { _, source in
                             Button {
                                 ndi.connect(to: source)
                                 showSourcePicker = false

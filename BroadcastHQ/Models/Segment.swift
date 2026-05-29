@@ -21,6 +21,7 @@ struct Segment: Identifiable {
     }
     
     static func formatTime(_ seconds: Int) -> String {
+        guard seconds > 0 else { return "0:00" }
         let m = seconds / 60
         let s = seconds % 60
         return s > 0 ? "\(m):\(String(format: "%02d", s))" : "\(m):00"
