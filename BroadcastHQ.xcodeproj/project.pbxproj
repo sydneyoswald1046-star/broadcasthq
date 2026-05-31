@@ -467,7 +467,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				OTHER_LDFLAGS = "-lc++";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
@@ -517,7 +517,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				OTHER_LDFLAGS = "-lc++";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
