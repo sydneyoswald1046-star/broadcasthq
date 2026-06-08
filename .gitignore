@@ -6,3 +6,5 @@ build/
 *.swiftpm
 .swiftpm/
 .superpowers/
+libndi_advanced_ios.a
+*.a
