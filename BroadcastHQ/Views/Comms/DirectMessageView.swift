@@ -160,14 +160,19 @@ struct DirectMessageView: View {
             // PTT button
             Circle()
                 .fill(authState.isChannelBusy ? Color.secondary.opacity(0.3) : isPTTActive ? Color.bhqTint : Color.bhqGreen)
-                .frame(width: 40, height: 40)
+                .frame(width: 64, height: 64)
                 .overlay {
-                    Image(systemName: authState.isChannelBusy ? "mic.slash" : isPTTActive ? "mic.fill" : "mic")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.white)
+                    VStack(spacing: 2) {
+                        Image(systemName: authState.isChannelBusy ? "mic.slash" : isPTTActive ? "mic.fill" : "mic")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(Color.white)
+                        Text(isPTTActive ? "Live" : "PTT")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.8))
+                    }
                 }
-                .shadow(color: isPTTActive ? Color.bhqTint.opacity(0.4) : Color.clear, radius: 6)
-                .scaleEffect(isPTTActive ? 1.05 : 1.0)
+                .shadow(color: isPTTActive ? Color.bhqTint.opacity(0.4) : Color.clear, radius: 10)
+                .scaleEffect(isPTTActive ? 1.1 : 1.0)
                 .animation(.easeOut(duration: 0.08), value: isPTTActive)
                 .gesture(
                     DragGesture(minimumDistance: 0)

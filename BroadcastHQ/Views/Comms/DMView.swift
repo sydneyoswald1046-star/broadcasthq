@@ -502,18 +502,23 @@ struct DMView: View {
             }
             
             HStack(spacing: 10) {
-            // PTT — larger, matches Comms
+            // PTT button
             Circle()
                 .fill(authState.isChannelBusy ? Color.secondary.opacity(0.2) : isPTTActive ? Color.bhqTint : Color.bhqGreen)
-                .frame(width: 44, height: 44)
+                .frame(width: 64, height: 64)
                 .overlay {
-                    Image(systemName: authState.isChannelBusy ? "mic.slash.fill" : isPTTActive ? "waveform" : "mic.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(Color.white)
-                        .symbolEffect(.variableColor.iterative, options: .repeating, isActive: isPTTActive)
+                    VStack(spacing: 2) {
+                        Image(systemName: authState.isChannelBusy ? "mic.slash.fill" : isPTTActive ? "waveform" : "mic.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(Color.white)
+                            .symbolEffect(.variableColor.iterative, options: .repeating, isActive: isPTTActive)
+                        Text(isPTTActive ? "Live" : "PTT")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.8))
+                    }
                 }
-                .shadow(color: isPTTActive ? Color.bhqTint.opacity(0.4) : Color.clear, radius: 8)
-                .scaleEffect(isPTTActive ? 1.06 : 1.0)
+                .shadow(color: isPTTActive ? Color.bhqTint.opacity(0.4) : Color.clear, radius: 10)
+                .scaleEffect(isPTTActive ? 1.1 : 1.0)
                 .animation(.easeOut(duration: 0.1), value: isPTTActive)
                 .gesture(
                     DragGesture(minimumDistance: 0)

@@ -277,18 +277,23 @@ struct CommsView: View {
             }
             
             HStack(spacing: 10) {
-            // PTT button — larger
+            // PTT button
             Circle()
                 .fill(authState.isChannelBusy ? Color.secondary.opacity(0.2) : (isPTTActive || volumePTT.isTransmitting) ? Color.bhqTint : Color.bhqGreen)
-                .frame(width: 48, height: 48)
+                .frame(width: 64, height: 64)
                 .overlay {
-                    Image(systemName: authState.isChannelBusy ? "mic.slash.fill" : (isPTTActive || volumePTT.isTransmitting) ? "waveform" : "mic.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(Color.white)
-                        .symbolEffect(.variableColor.iterative, options: .repeating, isActive: isPTTActive || volumePTT.isTransmitting)
+                    VStack(spacing: 2) {
+                        Image(systemName: authState.isChannelBusy ? "mic.slash.fill" : (isPTTActive || volumePTT.isTransmitting) ? "waveform" : "mic.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(Color.white)
+                            .symbolEffect(.variableColor.iterative, options: .repeating, isActive: isPTTActive || volumePTT.isTransmitting)
+                        Text(isPTTActive || volumePTT.isTransmitting ? "Live" : "PTT")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.8))
+                    }
                 }
-                .shadow(color: (isPTTActive || volumePTT.isTransmitting) ? Color.bhqTint.opacity(0.5) : Color.clear, radius: 8)
-                .scaleEffect((isPTTActive || volumePTT.isTransmitting) ? 1.08 : 1.0)
+                .shadow(color: (isPTTActive || volumePTT.isTransmitting) ? Color.bhqTint.opacity(0.5) : Color.clear, radius: 10)
+                .scaleEffect((isPTTActive || volumePTT.isTransmitting) ? 1.1 : 1.0)
                 .animation(.easeOut(duration: 0.1), value: isPTTActive || volumePTT.isTransmitting)
                 .gesture(
                     DragGesture(minimumDistance: 0)
