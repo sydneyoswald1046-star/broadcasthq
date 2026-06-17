@@ -128,6 +128,13 @@ struct DirectMessageView: View {
             .onChange(of: authState.messages.count) { _, _ in
                 if let last = messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
+            .onAppear {
+                if let last = messages.last {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
             .onTapGesture { isInputFocused = false }
         }
     }

@@ -398,6 +398,13 @@ struct DMView: View {
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
+            .onAppear {
+                if let last = dmMessages(for: member.id).last {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
             .onTapGesture { isInputFocused = false }
         }
     }
