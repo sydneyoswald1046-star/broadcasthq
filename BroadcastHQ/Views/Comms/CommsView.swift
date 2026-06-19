@@ -1,8 +1,14 @@
 import SwiftUI
 
+enum CommsTab: String, CaseIterable {
+    case channels = "Channels"
+    case conference = "Conference"
+}
+
 struct CommsView: View {
     @EnvironmentObject var authState: AuthState
     @EnvironmentObject var volumePTT: VolumeButtonPTT
+    @State private var commsTab: CommsTab = .channels
     @State private var activeTeam: String = "all"
     @State private var inputText: String = ""
     @State private var selectedMember: AppUser? = nil
@@ -31,10 +37,27 @@ struct CommsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            channelSelector
-            statusBanner
-            messageList
-            inputBar
+            // Segmented control
+            Picker("", selection: $commsTab) {
+                ForEach(CommsTab.allCases, id: \.self) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            switch commsTab {
+            case .channels:
+                VStack(spacing: 0) {
+                    channelSelector
+                    statusBanner
+                    messageList
+                    inputBar
+                }
+            case .conference:
+                ConferenceListView()
+            }
         }
         .background(Color.bhqBackground)
         .navigationDestination(isPresented: $showMemberDetail) {
