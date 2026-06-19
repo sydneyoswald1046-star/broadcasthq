@@ -475,9 +475,29 @@ class AuthState: ObservableObject {
         activeRoomListener?.remove()
         activeRoomListener = firestore.listenToConferenceRoom(roomId: roomId) { [weak self] room in
             DispatchQueue.main.async {
-                guard let self = self else { return }
+                guard let self = self, let user = self.currentUser else { return }
                 if let room = room, room.isActive {
+                    // Detect participant joins/leaves BEFORE updating activeConferenceRoom
+                    // so oldIds reflects the previous state.
+                    let oldIds = Set(self.activeConferenceRoom?.participants.map { $0.userId } ?? [])
+                    let newIds = Set(room.participants.map { $0.userId })
+                    for joined in newIds.subtracting(oldIds) {
+                        ConferenceAudioService.shared.handleNewParticipant(joined)
+                    }
+                    for left in oldIds.subtracting(newIds) {
+                        ConferenceAudioService.shared.handleParticipantLeft(left)
+                    }
+
                     self.activeConferenceRoom = room
+
+                    // Start audio service on first room snapshot (when participant list is available).
+                    if !ConferenceAudioService.shared.isInRoom {
+                        let participantIds = room.participants.map { $0.userId }
+                        ConferenceAudioService.shared.joinRoom(
+                            roomId: room.id, userId: user.id,
+                            existingParticipantIds: participantIds
+                        )
+                    }
                 } else {
                     self.leaveConference()
                 }
@@ -506,6 +526,9 @@ class AuthState: ObservableObject {
         activeConferenceRoom = nil
         isMuted = false
 
+        // Tear down all WebRTC peer connections before cleaning up signaling.
+        ConferenceAudioService.shared.leaveRoom()
+
         Task {
             try? await firestore.leaveConferenceRoom(roomId: roomId, userId: userId)
             try? await firestore.cleanupSignaling(roomId: roomId, userId: userId)
@@ -521,6 +544,7 @@ class AuthState: ObservableObject {
 
     func toggleMute() {
         isMuted.toggle()
+        ConferenceAudioService.shared.setMuted(isMuted)
     }
 
     // MARK: - Auth
