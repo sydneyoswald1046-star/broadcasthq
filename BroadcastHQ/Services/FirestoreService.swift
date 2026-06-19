@@ -427,6 +427,14 @@ class FirestoreService {
         }
     }
     
+    func listenToUserApproval(userId: String, onChange: @escaping (Bool) -> Void) -> ListenerRegistration {
+        return orgRef().collection("users").document(userId).addSnapshotListener { snapshot, error in
+            guard let data = snapshot?.data(), error == nil else { return }
+            let isApproved = data["isApproved"] as? Bool ?? false
+            onChange(isApproved)
+        }
+    }
+
     func listenToBroadcast(onChange: @escaping (Bool, Date?) -> Void) -> ListenerRegistration {
         return orgRef().collection("broadcast").document("current").addSnapshotListener { snapshot, error in
             guard let data = snapshot?.data(), error == nil else { return }
@@ -737,7 +745,7 @@ class FirestoreService {
                 .order(by: "timestamp", descending: true)
                 .limit(to: 20)
                 .getDocuments()
-            
+
             return snapshot.documents.compactMap { doc in
                 let data = doc.data()
                 guard doc.documentID != "latest",
@@ -747,7 +755,7 @@ class FirestoreService {
                       let senderRole = data["senderRole"] as? String,
                       let ts = data["timestamp"] as? Timestamp
                 else { return nil }
-                
+
                 return TeamAlert(
                     id: doc.documentID, message: message, senderName: senderName,
                     senderId: senderId, senderRole: senderRole,
@@ -755,5 +763,237 @@ class FirestoreService {
                 )
             }
         } catch { return [] }
+    }
+
+    // MARK: - Conference Rooms
+
+    func createConferenceRoom(name: String, createdBy: String, createdByName: String, accessMode: ConferenceAccessMode, invitedUserIds: [String]) async throws -> String {
+        let roomId = UUID().uuidString
+        let data: [String: Any] = [
+            "name": name,
+            "createdBy": createdBy,
+            "createdByName": createdByName,
+            "createdAt": Timestamp(date: Date()),
+            "accessMode": accessMode.rawValue,
+            "invitedUserIds": invitedUserIds,
+            "participants": [],
+            "isActive": true,
+        ]
+        try await orgRef().collection("conferenceRooms").document(roomId).setData(data)
+        return roomId
+    }
+
+    func endConferenceRoom(roomId: String) async throws {
+        try await orgRef().collection("conferenceRooms").document(roomId).updateData([
+            "isActive": false,
+            "participants": [],
+        ])
+    }
+
+    func joinConferenceRoom(roomId: String, participant: ConferenceParticipant) async throws {
+        let ref = orgRef().collection("conferenceRooms").document(roomId)
+        _ = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Bool, Error>) in
+            db.runTransaction({ (txn, errorPointer) -> Any? in
+                let snap: DocumentSnapshot
+                do { snap = try txn.getDocument(ref) } catch let err as NSError {
+                    errorPointer?.pointee = err
+                    return false
+                }
+                guard let data = snap.data(), data["isActive"] as? Bool == true else { return false }
+                var participants = (data["participants"] as? [[String: Any]]) ?? []
+                if participants.contains(where: { $0["userId"] as? String == participant.userId }) {
+                    return true
+                }
+                participants.append([
+                    "userId": participant.userId,
+                    "displayName": participant.displayName,
+                    "joinedAt": Timestamp(date: participant.joinedAt),
+                    "lastSeen": Timestamp(date: participant.lastSeen),
+                ])
+                txn.updateData(["participants": participants], forDocument: ref)
+                return true
+            }) { (result, error) in
+                if let error = error { cont.resume(throwing: error) }
+                else { cont.resume(returning: (result as? Bool) ?? false) }
+            }
+        }
+    }
+
+    func leaveConferenceRoom(roomId: String, userId: String) async throws {
+        let ref = orgRef().collection("conferenceRooms").document(roomId)
+        _ = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Bool, Error>) in
+            db.runTransaction({ (txn, errorPointer) -> Any? in
+                let snap: DocumentSnapshot
+                do { snap = try txn.getDocument(ref) } catch let err as NSError {
+                    errorPointer?.pointee = err
+                    return false
+                }
+                guard let data = snap.data() else { return false }
+                var participants = (data["participants"] as? [[String: Any]]) ?? []
+                participants.removeAll { $0["userId"] as? String == userId }
+                if participants.isEmpty {
+                    txn.updateData(["participants": [], "isActive": false], forDocument: ref)
+                } else {
+                    txn.updateData(["participants": participants], forDocument: ref)
+                }
+                return true
+            }) { (result, error) in
+                if let error = error { cont.resume(throwing: error) }
+                else { cont.resume(returning: (result as? Bool) ?? false) }
+            }
+        }
+    }
+
+    func updateParticipantHeartbeat(roomId: String, userId: String) async throws {
+        let ref = orgRef().collection("conferenceRooms").document(roomId)
+        _ = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Bool, Error>) in
+            db.runTransaction({ (txn, errorPointer) -> Any? in
+                let snap: DocumentSnapshot
+                do { snap = try txn.getDocument(ref) } catch let err as NSError {
+                    errorPointer?.pointee = err
+                    return false
+                }
+                guard let data = snap.data() else { return false }
+                var participants = (data["participants"] as? [[String: Any]]) ?? []
+                if let idx = participants.firstIndex(where: { $0["userId"] as? String == userId }) {
+                    participants[idx]["lastSeen"] = Timestamp(date: Date())
+                    txn.updateData(["participants": participants], forDocument: ref)
+                }
+                return true
+            }) { (result, error) in
+                if let error = error { cont.resume(throwing: error) }
+                else { cont.resume(returning: (result as? Bool) ?? false) }
+            }
+        }
+    }
+
+    func listenToConferenceRooms(onChange: @escaping ([ConferenceRoom]) -> Void) -> ListenerRegistration {
+        return orgRef().collection("conferenceRooms")
+            .whereField("isActive", isEqualTo: true)
+            .addSnapshotListener { snapshot, error in
+                guard let docs = snapshot?.documents, error == nil else { onChange([]); return }
+                let rooms = docs.compactMap { doc -> ConferenceRoom? in
+                    let data = doc.data()
+                    guard let name = data["name"] as? String,
+                          let createdBy = data["createdBy"] as? String,
+                          let createdByName = data["createdByName"] as? String,
+                          let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
+                          let accessModeStr = data["accessMode"] as? String,
+                          let accessMode = ConferenceAccessMode(rawValue: accessModeStr),
+                          let isActive = data["isActive"] as? Bool
+                    else { return nil }
+                    let invitedUserIds = data["invitedUserIds"] as? [String] ?? []
+                    let participantsRaw = data["participants"] as? [[String: Any]] ?? []
+                    let participants = participantsRaw.compactMap { p -> ConferenceParticipant? in
+                        guard let userId = p["userId"] as? String,
+                              let displayName = p["displayName"] as? String,
+                              let joinedAt = (p["joinedAt"] as? Timestamp)?.dateValue(),
+                              let lastSeen = (p["lastSeen"] as? Timestamp)?.dateValue()
+                        else { return nil }
+                        return ConferenceParticipant(userId: userId, displayName: displayName, joinedAt: joinedAt, lastSeen: lastSeen)
+                    }
+                    return ConferenceRoom(id: doc.documentID, name: name, createdBy: createdBy,
+                        createdByName: createdByName, createdAt: createdAt, accessMode: accessMode,
+                        invitedUserIds: invitedUserIds, participants: participants, isActive: isActive)
+                }
+                onChange(rooms)
+            }
+    }
+
+    func listenToConferenceRoom(roomId: String, onChange: @escaping (ConferenceRoom?) -> Void) -> ListenerRegistration {
+        return orgRef().collection("conferenceRooms").document(roomId)
+            .addSnapshotListener { snapshot, error in
+                guard let data = snapshot?.data(), error == nil else { onChange(nil); return }
+                guard let name = data["name"] as? String,
+                      let createdBy = data["createdBy"] as? String,
+                      let createdByName = data["createdByName"] as? String,
+                      let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
+                      let accessModeStr = data["accessMode"] as? String,
+                      let accessMode = ConferenceAccessMode(rawValue: accessModeStr),
+                      let isActive = data["isActive"] as? Bool
+                else { onChange(nil); return }
+                let invitedUserIds = data["invitedUserIds"] as? [String] ?? []
+                let participantsRaw = data["participants"] as? [[String: Any]] ?? []
+                let participants = participantsRaw.compactMap { p -> ConferenceParticipant? in
+                    guard let userId = p["userId"] as? String,
+                          let displayName = p["displayName"] as? String,
+                          let joinedAt = (p["joinedAt"] as? Timestamp)?.dateValue(),
+                          let lastSeen = (p["lastSeen"] as? Timestamp)?.dateValue()
+                    else { return nil }
+                    return ConferenceParticipant(userId: userId, displayName: displayName, joinedAt: joinedAt, lastSeen: lastSeen)
+                }
+                let room = ConferenceRoom(id: snapshot!.documentID, name: name, createdBy: createdBy,
+                    createdByName: createdByName, createdAt: createdAt, accessMode: accessMode,
+                    invitedUserIds: invitedUserIds, participants: participants, isActive: isActive)
+                onChange(room)
+            }
+    }
+
+    // MARK: - Conference Signaling
+
+    struct SignalingData {
+        let fromUserId: String
+        let offer: String?
+        let answer: String?
+        let iceCandidates: [String]
+    }
+
+    func writeSignalingOffer(roomId: String, fromUserId: String, toUserId: String, sdp: String) async throws {
+        try await orgRef().collection("conferenceRooms").document(roomId)
+            .collection("signaling").document(toUserId)
+            .collection("peers").document(fromUserId)
+            .setData([
+                "offer": sdp,
+                "iceCandidates": [String](),
+                "updatedAt": Timestamp(date: Date()),
+            ], merge: true)
+    }
+
+    func writeSignalingAnswer(roomId: String, fromUserId: String, toUserId: String, sdp: String) async throws {
+        try await orgRef().collection("conferenceRooms").document(roomId)
+            .collection("signaling").document(toUserId)
+            .collection("peers").document(fromUserId)
+            .setData([
+                "answer": sdp,
+                "updatedAt": Timestamp(date: Date()),
+            ], merge: true)
+    }
+
+    func addIceCandidate(roomId: String, fromUserId: String, toUserId: String, candidate: String) async throws {
+        try await orgRef().collection("conferenceRooms").document(roomId)
+            .collection("signaling").document(toUserId)
+            .collection("peers").document(fromUserId)
+            .updateData([
+                "iceCandidates": FieldValue.arrayUnion([candidate]),
+                "updatedAt": Timestamp(date: Date()),
+            ])
+    }
+
+    func listenToSignaling(roomId: String, forUserId: String, onChange: @escaping (SignalingData) -> Void) -> ListenerRegistration {
+        return orgRef().collection("conferenceRooms").document(roomId)
+            .collection("signaling").document(forUserId)
+            .collection("peers")
+            .addSnapshotListener { snapshot, error in
+                guard let docs = snapshot?.documents, error == nil else { return }
+                for doc in docs {
+                    let data = doc.data()
+                    let signal = SignalingData(
+                        fromUserId: doc.documentID,
+                        offer: data["offer"] as? String,
+                        answer: data["answer"] as? String,
+                        iceCandidates: data["iceCandidates"] as? [String] ?? []
+                    )
+                    onChange(signal)
+                }
+            }
+    }
+
+    func cleanupSignaling(roomId: String, userId: String) async throws {
+        let peerDocs = try await orgRef().collection("conferenceRooms").document(roomId)
+            .collection("signaling").document(userId)
+            .collection("peers").getDocuments()
+        let batch = db.batch()
+        for doc in peerDocs.documents { batch.deleteDocument(doc.reference) }
+        try await batch.commit()
     }
 }
