@@ -510,8 +510,16 @@ class AuthState: ObservableObject {
         // Start heartbeat
         conferenceHeartbeatTimer?.invalidate()
         conferenceHeartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            guard let self = self, let room = self.activeConferenceRoom else { return }
+            guard let self = self, let room = self.activeConferenceRoom, let user = self.currentUser else { return }
+            // Update own heartbeat
             Task { try? await self.firestore.updateParticipantHeartbeat(roomId: room.id, userId: user.id) }
+            // Prune stale participants (> 90s since lastSeen)
+            let staleThreshold = Date().addingTimeInterval(-90)
+            let staleIds = room.participants.filter { $0.lastSeen < staleThreshold && $0.userId != user.id }.map { $0.userId }
+            for staleId in staleIds {
+                Task { try? await self.firestore.leaveConferenceRoom(roomId: room.id, userId: staleId) }
+                ConferenceAudioService.shared.handleParticipantLeft(staleId)
+            }
         }
 
         isMuted = false
