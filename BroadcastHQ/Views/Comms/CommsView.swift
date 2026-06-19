@@ -101,7 +101,25 @@ struct CommsView: View {
     // MARK: - Status Banner
     @ViewBuilder
     private var statusBanner: some View {
-        if isPTTActive || volumePTT.isTransmitting || authState.isLocalTransmitting {
+        if authState.isInConference {
+            HStack(spacing: 8) {
+                Image(systemName: "phone.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.bhqGreen)
+                Text("In conference — \(authState.activeConferenceRoom?.name ?? "")")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.white)
+                Spacer()
+                Text("PTT disabled")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.secondary)
+                    .tracking(0.5)
+            }
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(Color.bhqGreen.opacity(0.15))
+        } else if isPTTActive || volumePTT.isTransmitting || authState.isLocalTransmitting {
             HStack(spacing: 8) {
                 Circle().fill(Color.white).frame(width: 6, height: 6)
                     .opacity(isPTTActive ? 1 : 0.5)
@@ -302,11 +320,11 @@ struct CommsView: View {
             HStack(spacing: 10) {
             // PTT button
             Circle()
-                .fill(authState.isChannelBusy ? Color.secondary.opacity(0.2) : (isPTTActive || volumePTT.isTransmitting) ? Color.bhqTint : Color.bhqGreen)
+                .fill(authState.isInConference ? Color.secondary.opacity(0.2) : authState.isChannelBusy ? Color.secondary.opacity(0.2) : (isPTTActive || volumePTT.isTransmitting) ? Color.bhqTint : Color.bhqGreen)
                 .frame(width: 64, height: 64)
                 .overlay {
                     VStack(spacing: 2) {
-                        Image(systemName: authState.isChannelBusy ? "mic.slash.fill" : (isPTTActive || volumePTT.isTransmitting) ? "waveform" : "mic.fill")
+                        Image(systemName: authState.isInConference ? "phone.fill" : authState.isChannelBusy ? "mic.slash.fill" : (isPTTActive || volumePTT.isTransmitting) ? "waveform" : "mic.fill")
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundStyle(Color.white)
                             .symbolEffect(.variableColor.iterative, options: .repeating, isActive: isPTTActive || volumePTT.isTransmitting)
@@ -318,6 +336,7 @@ struct CommsView: View {
                 .shadow(color: (isPTTActive || volumePTT.isTransmitting) ? Color.bhqTint.opacity(0.5) : Color.clear, radius: 10)
                 .scaleEffect((isPTTActive || volumePTT.isTransmitting) ? 1.1 : 1.0)
                 .animation(.easeOut(duration: 0.1), value: isPTTActive || volumePTT.isTransmitting)
+                .disabled(authState.isInConference)
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { _ in

@@ -62,10 +62,12 @@ struct BroadcastHQApp: App {
                 switch newPhase {
                 case .active:
                     authState.isInBackground = false
+                    authState.handleForegrounded()
                     authState.goOnline()
                     PushNotificationService.shared.clearBadge()
                 case .background, .inactive:
                     authState.isInBackground = true
+                    authState.handleBackgrounded()
                     authState.goOffline()
                 @unknown default:
                     break

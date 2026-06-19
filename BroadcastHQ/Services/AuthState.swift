@@ -75,6 +75,7 @@ class AuthState: ObservableObject {
     private var conferenceRoomsListener: ListenerRegistration?
     private var activeRoomListener: ListenerRegistration?
     private var conferenceHeartbeatTimer: Timer?
+    private var backgroundConferenceTimer: Timer?
 
     var isInConference: Bool { activeConferenceRoom != nil }
 
@@ -113,7 +114,8 @@ class AuthState: ObservableObject {
         accountsListener?.remove(); broadcastListener?.remove(); segmentsListener?.remove()
         equipmentListener?.remove(); messagesListener?.remove(); alertsListener?.remove()
         pttListener?.remove(); reminderTimer?.invalidate()
-        conferenceRoomsListener?.remove(); activeRoomListener?.remove(); conferenceHeartbeatTimer?.invalidate()
+        conferenceRoomsListener?.remove(); activeRoomListener?.remove()
+        conferenceHeartbeatTimer?.invalidate(); backgroundConferenceTimer?.invalidate()
     }
     
     private func loadOrgName() {
@@ -401,6 +403,7 @@ class AuthState: ObservableObject {
     }
     
     func startPTT(channel: String) {
+        guard !isInConference else { return }
         guard let user = currentUser else { return }
         if isChannelBusy { return }
         // Start capturing immediately for low latency, then claim the shared lock.
@@ -545,6 +548,21 @@ class AuthState: ObservableObject {
     func toggleMute() {
         isMuted.toggle()
         ConferenceAudioService.shared.setMuted(isMuted)
+    }
+
+    func handleBackgrounded() {
+        guard isInConference else { return }
+        backgroundConferenceTimer?.invalidate()
+        backgroundConferenceTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.leaveConference()
+            }
+        }
+    }
+
+    func handleForegrounded() {
+        backgroundConferenceTimer?.invalidate()
+        backgroundConferenceTimer = nil
     }
 
     // MARK: - Auth
