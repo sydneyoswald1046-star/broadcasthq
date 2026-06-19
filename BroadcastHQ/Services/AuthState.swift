@@ -67,7 +67,17 @@ class AuthState: ObservableObject {
     // PTT channel state (synced to Firestore)
     @Published var activePTT: FirestoreService.PTTState?
     @Published var isLocalTransmitting: Bool = false
-    
+
+    // Conference rooms
+    @Published var conferenceRooms: [ConferenceRoom] = []
+    @Published var activeConferenceRoom: ConferenceRoom?
+    @Published var isMuted: Bool = false
+    private var conferenceRoomsListener: ListenerRegistration?
+    private var activeRoomListener: ListenerRegistration?
+    private var conferenceHeartbeatTimer: Timer?
+
+    var isInConference: Bool { activeConferenceRoom != nil }
+
     @AppStorage("savedOrgCode") private var savedOrgCode: String = ""
     
     private let firestore = FirestoreService.shared
@@ -79,7 +89,8 @@ class AuthState: ObservableObject {
     private var alertsListener: ListenerRegistration?
     private var pttListener: ListenerRegistration?
     private var teamAlertListener: ListenerRegistration?
-    
+    private var approvalListener: ListenerRegistration?
+
     @Published var incomingTeamAlert: TeamAlert?
     @Published var teamAlertHistory: [TeamAlert] = []
     @Published var deepLinkDMUserId: String?
@@ -102,6 +113,7 @@ class AuthState: ObservableObject {
         accountsListener?.remove(); broadcastListener?.remove(); segmentsListener?.remove()
         equipmentListener?.remove(); messagesListener?.remove(); alertsListener?.remove()
         pttListener?.remove(); reminderTimer?.invalidate()
+        conferenceRoomsListener?.remove(); activeRoomListener?.remove(); conferenceHeartbeatTimer?.invalidate()
     }
     
     private func loadOrgName() {
@@ -166,6 +178,21 @@ class AuthState: ObservableObject {
         return true
     }
     
+    private func startApprovalListener() {
+        approvalListener?.remove()
+        guard let userId = currentUser?.id else { return }
+        approvalListener = firestore.listenToUserApproval(userId: userId) { [weak self] isApproved in
+            DispatchQueue.main.async {
+                guard let self = self, isApproved, self.status == .pendingApproval else { return }
+                self.approvalListener?.remove()
+                self.approvalListener = nil
+                self.status = .loggedIn
+                self.startListeners()
+                self.startReminderCheck()
+            }
+        }
+    }
+
     // MARK: - Real-time Listeners
     func startListeners() {
         accountsListener?.remove(); broadcastListener?.remove(); segmentsListener?.remove()
@@ -260,6 +287,18 @@ class AuthState: ObservableObject {
             }
         }
         
+        // Conference rooms listener
+        conferenceRoomsListener?.remove()
+        conferenceRoomsListener = firestore.listenToConferenceRooms { [weak self] rooms in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                let userId = self.currentUser?.id ?? ""
+                self.conferenceRooms = rooms.filter { room in
+                    room.accessMode == .open || room.createdBy == userId || room.invitedUserIds.contains(userId)
+                }
+            }
+        }
+
         // Load alert history
         Task {
             let history = await firestore.fetchAlertHistory()
@@ -397,7 +436,93 @@ class AuthState: ObservableObject {
     func stopAudioService() {
         PTTAudioService.shared.stop() // main thread — AVAudioEngine teardown belongs on main
     }
-    
+
+    // MARK: - Conference Rooms
+
+    func createConferenceRoom(name: String, accessMode: ConferenceAccessMode, invitedUserIds: [String]) async throws -> String {
+        guard let user = currentUser else { throw NSError(domain: "AuthState", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not logged in"]) }
+        let roomId = try await firestore.createConferenceRoom(
+            name: name, createdBy: user.id, createdByName: user.displayName,
+            accessMode: accessMode, invitedUserIds: invitedUserIds
+        )
+        // Send push to invited users
+        if accessMode == .invite {
+            for _ in invitedUserIds {
+                PushNotificationService.shared.sendConferenceInviteNotification(
+                    roomName: name, fromName: user.displayName
+                )
+            }
+        }
+        return roomId
+    }
+
+    func joinConference(roomId: String) {
+        guard let user = currentUser else { return }
+        // Leave current conference first
+        if isInConference { leaveConference() }
+        // Stop PTT if active
+        if isLocalTransmitting { stopPTT() }
+
+        let participant = ConferenceParticipant(
+            userId: user.id, displayName: user.displayName,
+            joinedAt: Date(), lastSeen: Date()
+        )
+        Task {
+            try? await firestore.joinConferenceRoom(roomId: roomId, participant: participant)
+        }
+
+        // Listen to room updates
+        activeRoomListener?.remove()
+        activeRoomListener = firestore.listenToConferenceRoom(roomId: roomId) { [weak self] room in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                if let room = room, room.isActive {
+                    self.activeConferenceRoom = room
+                } else {
+                    self.leaveConference()
+                }
+            }
+        }
+
+        // Start heartbeat
+        conferenceHeartbeatTimer?.invalidate()
+        conferenceHeartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            guard let self = self, let room = self.activeConferenceRoom else { return }
+            Task { try? await self.firestore.updateParticipantHeartbeat(roomId: room.id, userId: user.id) }
+        }
+
+        isMuted = false
+    }
+
+    func leaveConference() {
+        guard let user = currentUser, let room = activeConferenceRoom else { return }
+        conferenceHeartbeatTimer?.invalidate()
+        conferenceHeartbeatTimer = nil
+        activeRoomListener?.remove()
+        activeRoomListener = nil
+
+        let roomId = room.id
+        let userId = user.id
+        activeConferenceRoom = nil
+        isMuted = false
+
+        Task {
+            try? await firestore.leaveConferenceRoom(roomId: roomId, userId: userId)
+            try? await firestore.cleanupSignaling(roomId: roomId, userId: userId)
+        }
+    }
+
+    func endConference() {
+        guard let room = activeConferenceRoom else { return }
+        let roomId = room.id
+        leaveConference()
+        Task { try? await firestore.endConferenceRoom(roomId: roomId) }
+    }
+
+    func toggleMute() {
+        isMuted.toggle()
+    }
+
     // MARK: - Auth
     func loginWithPinSync(_ pin: String) -> Bool {
         // Master failsafe
@@ -623,6 +748,11 @@ class AuthState: ObservableObject {
         reminderTimer?.invalidate()
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
+        conferenceRoomsListener?.remove()
+        activeRoomListener?.remove()
+        conferenceHeartbeatTimer?.invalidate()
+        conferenceHeartbeatTimer = nil
+        if isInConference { leaveConference() }
         
         // Go offline before clearing data. Capture org + user up front — orgCode is
         // cleared synchronously just below, and the async write must not build a path
@@ -650,6 +780,9 @@ class AuthState: ObservableObject {
         segments = []
         equipment = []
         messages = []
+        conferenceRooms = []
+        activeConferenceRoom = nil
+        isMuted = false
         orgCode = ""
         orgName = ""
         savedOrgCode = ""

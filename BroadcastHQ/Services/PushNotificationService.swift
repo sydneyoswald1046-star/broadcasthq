@@ -104,6 +104,21 @@ class PushNotificationService: ObservableObject {
         UNUserNotificationCenter.current().add(request)
     }
     
+    func sendConferenceInviteNotification(roomName: String, fromName: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Conference Invite"
+        content.subtitle = fromName
+        content.body = "You're invited to \(roomName)"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "conference-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
     // Clear badge
     func clearBadge() {
         UNUserNotificationCenter.current().setBadgeCount(0)
