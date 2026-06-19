@@ -12,7 +12,9 @@ struct ConferenceListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if authState.conferenceRooms.isEmpty {
+            if authState.activeConferenceRoom != nil {
+                ConferenceRoomView()
+            } else if authState.conferenceRooms.isEmpty {
                 emptyState
             } else {
                 roomList
@@ -22,7 +24,7 @@ struct ConferenceListView: View {
             CreateConferenceSheet()
         }
         .overlay(alignment: .bottomTrailing) {
-            if canCreate {
+            if canCreate && authState.activeConferenceRoom == nil {
                 createButton
             }
         }
