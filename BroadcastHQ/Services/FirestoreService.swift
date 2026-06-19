@@ -963,10 +963,10 @@ class FirestoreService {
         try await orgRef().collection("conferenceRooms").document(roomId)
             .collection("signaling").document(toUserId)
             .collection("peers").document(fromUserId)
-            .updateData([
+            .setData([
                 "iceCandidates": FieldValue.arrayUnion([candidate]),
                 "updatedAt": Timestamp(date: Date()),
-            ])
+            ], merge: true)
     }
 
     func listenToSignaling(roomId: String, forUserId: String, onChange: @escaping (SignalingData) -> Void) -> ListenerRegistration {

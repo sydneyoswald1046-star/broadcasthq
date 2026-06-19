@@ -352,13 +352,18 @@ class ConferenceAudioService: ObservableObject {
 
     private func handleIceCandidate(from peerId: String, candidateString: String) {
         guard let pc = peerConnections[peerId] else { return }
-        // Encoded format: "<sdp>|<sdpMLineIndex>|<sdpMid>"
-        let parts = candidateString.split(separator: "|", maxSplits: 2)
-        guard parts.count == 3, let sdpMLineIndex = Int32(parts[1]) else { return }
+        // Encoded as JSON: {"sdp": ..., "sdpMLineIndex": ..., "sdpMid": ...}
+        guard let data = candidateString.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let sdp = dict["sdp"] as? String,
+              let sdpMLineIndexRaw = dict["sdpMLineIndex"],
+              let sdpMLineIndex = (sdpMLineIndexRaw as? NSNumber).map({ Int32($0.intValue) })
+        else { return }
+        let sdpMid = dict["sdpMid"] as? String
         let candidate = RTCIceCandidate(
-            sdp: String(parts[0]),
+            sdp: sdp,
             sdpMLineIndex: sdpMLineIndex,
-            sdpMid: String(parts[2]).isEmpty ? nil : String(parts[2])
+            sdpMid: sdpMid.flatMap { $0.isEmpty ? nil : $0 }
         )
         pc.add(candidate) { _ in }
     }
@@ -385,7 +390,13 @@ class ConferenceAudioService: ObservableObject {
 
     fileprivate func didGenerateIceCandidate(_ candidate: RTCIceCandidate, for peerId: String) {
         guard let roomId = roomId, let userId = userId else { return }
-        let candidateString = "\(candidate.sdp)|\(candidate.sdpMLineIndex)|\(candidate.sdpMid ?? "")"
+        let dict: [String: Any] = [
+            "sdp": candidate.sdp,
+            "sdpMLineIndex": candidate.sdpMLineIndex,
+            "sdpMid": candidate.sdpMid ?? "",
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: dict),
+              let candidateString = String(data: data, encoding: .utf8) else { return }
         Task {
             try? await firestore.addIceCandidate(
                 roomId: roomId, fromUserId: userId, toUserId: peerId, candidate: candidateString

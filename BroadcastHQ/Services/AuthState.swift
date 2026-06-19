@@ -448,13 +448,11 @@ class AuthState: ObservableObject {
             name: name, createdBy: user.id, createdByName: user.displayName,
             accessMode: accessMode, invitedUserIds: invitedUserIds
         )
-        // Send push to invited users
-        if accessMode == .invite {
-            for _ in invitedUserIds {
-                PushNotificationService.shared.sendConferenceInviteNotification(
-                    roomName: name, fromName: user.displayName
-                )
-            }
+        // Notify the creator that invites were sent (actual FCM push to invitees is server-side)
+        if accessMode == .invite && !invitedUserIds.isEmpty {
+            PushNotificationService.shared.sendConferenceInviteNotification(
+                roomName: name, fromName: user.displayName
+            )
         }
         return roomId
     }
@@ -471,38 +469,45 @@ class AuthState: ObservableObject {
             joinedAt: Date(), lastSeen: Date()
         )
         Task {
-            try? await firestore.joinConferenceRoom(roomId: roomId, participant: participant)
-        }
+            do {
+                try await firestore.joinConferenceRoom(roomId: roomId, participant: participant)
+            } catch {
+                print("❌ Failed to join conference room: \(error)")
+                return
+            }
 
-        // Listen to room updates
-        activeRoomListener?.remove()
-        activeRoomListener = firestore.listenToConferenceRoom(roomId: roomId) { [weak self] room in
-            DispatchQueue.main.async {
-                guard let self = self, let user = self.currentUser else { return }
-                if let room = room, room.isActive {
-                    // Detect participant joins/leaves BEFORE updating activeConferenceRoom
-                    // so oldIds reflects the previous state.
-                    let oldIds = Set(self.activeConferenceRoom?.participants.map { $0.userId } ?? [])
-                    let newIds = Set(room.participants.map { $0.userId })
-                    for joined in newIds.subtracting(oldIds) {
-                        ConferenceAudioService.shared.handleNewParticipant(joined)
-                    }
-                    for left in oldIds.subtracting(newIds) {
-                        ConferenceAudioService.shared.handleParticipantLeft(left)
-                    }
+            // Listener setup only reached if join succeeded
+            await MainActor.run {
+                self.activeRoomListener?.remove()
+                self.activeRoomListener = self.firestore.listenToConferenceRoom(roomId: roomId) { [weak self] room in
+                    DispatchQueue.main.async {
+                        guard let self = self, let user = self.currentUser else { return }
+                        if let room = room, room.isActive {
+                            // Detect participant joins/leaves BEFORE updating activeConferenceRoom
+                            // so oldIds reflects the previous state.
+                            let oldIds = Set(self.activeConferenceRoom?.participants.map { $0.userId } ?? [])
+                            let newIds = Set(room.participants.map { $0.userId })
+                            for joined in newIds.subtracting(oldIds) {
+                                ConferenceAudioService.shared.handleNewParticipant(joined)
+                            }
+                            for left in oldIds.subtracting(newIds) {
+                                ConferenceAudioService.shared.handleParticipantLeft(left)
+                            }
 
-                    self.activeConferenceRoom = room
+                            self.activeConferenceRoom = room
 
-                    // Start audio service on first room snapshot (when participant list is available).
-                    if !ConferenceAudioService.shared.isInRoom {
-                        let participantIds = room.participants.map { $0.userId }
-                        ConferenceAudioService.shared.joinRoom(
-                            roomId: room.id, userId: user.id,
-                            existingParticipantIds: participantIds
-                        )
+                            // Start audio service on first room snapshot (when participant list is available).
+                            if !ConferenceAudioService.shared.isInRoom {
+                                let participantIds = room.participants.map { $0.userId }
+                                ConferenceAudioService.shared.joinRoom(
+                                    roomId: room.id, userId: user.id,
+                                    existingParticipantIds: participantIds
+                                )
+                            }
+                        } else {
+                            self.leaveConference()
+                        }
                     }
-                } else {
-                    self.leaveConference()
                 }
             }
         }
