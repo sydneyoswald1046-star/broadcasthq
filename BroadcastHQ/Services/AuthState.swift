@@ -82,6 +82,7 @@ class AuthState: ObservableObject {
     @AppStorage("savedOrgCode") private var savedOrgCode: String = ""
     
     private let firestore = FirestoreService.shared
+    private var pendingDeletions: Set<String> = []
     private var accountsListener: ListenerRegistration?
     private var broadcastListener: ListenerRegistration?
     private var segmentsListener: ListenerRegistration?
@@ -210,11 +211,15 @@ class AuthState: ObservableObject {
         accountsListener = firestore.listenToAccounts { [weak self] accounts in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                let filtered = accounts.filter { !self.pendingDeletions.contains($0.id) }
+                // Clear pending deletions that Firestore has confirmed (no longer in snapshot)
+                let returnedIds = Set(accounts.map(\.id))
+                self.pendingDeletions = self.pendingDeletions.filter { returnedIds.contains($0) }
                 // Only update if something meaningful changed (not just lastSeen)
                 let oldIds = Set(self.accounts.map { "\($0.id)-\($0.firstName)-\($0.role)-\($0.team)-\($0.isApproved)-\($0.presence)" })
-                let newIds = Set(accounts.map { "\($0.id)-\($0.firstName)-\($0.role)-\($0.team)-\($0.isApproved)-\($0.presence)" })
+                let newIds = Set(filtered.map { "\($0.id)-\($0.firstName)-\($0.role)-\($0.team)-\($0.isApproved)-\($0.presence)" })
                 if oldIds != newIds || self.accounts.isEmpty {
-                    self.accounts = accounts
+                    self.accounts = filtered
                 }
                 self.isLoading = false
             }
@@ -785,9 +790,31 @@ class AuthState: ObservableObject {
         }
     }
     
+    func resetMemberPin(_ accountId: String) async -> String? {
+        let newPin = String(format: "%04d", Int.random(in: 0...9999))
+        do {
+            try await firestore.updatePin(orgCode: firestore.orgCode, userId: accountId, newPin: newPin)
+            if let index = accounts.firstIndex(where: { $0.id == accountId }) {
+                accounts[index].pin = newPin
+            }
+            return newPin
+        } catch {
+            return nil
+        }
+    }
+
     func rejectAccount(_ id: String) {
+        pendingDeletions.insert(id)
         accounts.removeAll { $0.id == id }
-        Task { try? await firestore.deleteAccount(id: id) }
+        Task {
+            do {
+                try await firestore.deleteAccount(id: id)
+            } catch {
+                await MainActor.run {
+                    self.pendingDeletions.remove(id)
+                }
+            }
+        }
     }
     
     func logout() {
@@ -832,6 +859,7 @@ class AuthState: ObservableObject {
         incomingTeamAlert = nil
         teamAlertHistory = []
         accounts = []
+        pendingDeletions = []
         segments = []
         equipment = []
         messages = []
