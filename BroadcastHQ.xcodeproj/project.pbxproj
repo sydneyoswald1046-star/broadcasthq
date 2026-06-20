@@ -154,6 +154,7 @@
 				CDE1F0312F892473004A81D4 /* GoogleSignIn */,
 				CD51E3F62FA16BA100A11FAA /* FirebaseStorage */,
 				CDA3AED92FAE74E3004872CB /* FirebaseMessaging */,
+				CDWEBRTC022FA500000000002 /* WebRTC */,
 			);
 			productName = BroadcastHQ;
 			productReference = CDA1E2D62F856FFF008DF139 /* BroadcastHQ.app */;
@@ -240,6 +241,7 @@
 			packageReferences = (
 				CDE1F0292F891A18004A81D4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				CDE1F0302F892473004A81D4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				CDWEBRTC012FA500000000001 /* XCRemoteSwiftPackageReference "WebRTC" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CDA1E2D72F856FFF008DF139 /* Products */;
@@ -451,7 +453,7 @@
 				INFOPLIST_FILE = "BroadcastHQ-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Valor Live";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Valor.Live uses your local network to connect with nearby team members for push-to-talk.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Valor.Live uses your local network for push-to-talk, NDI video monitoring, and conference calls.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Valor.Live uses your microphone for push-to-talk communication with your broadcast team.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -501,7 +503,7 @@
 				INFOPLIST_FILE = "BroadcastHQ-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Valor Live";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Valor.Live uses your local network to connect with nearby team members for push-to-talk.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Valor.Live uses your local network for push-to-talk, NDI video monitoring, and conference calls.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Valor.Live uses your microphone for push-to-talk communication with your broadcast team.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -678,6 +680,14 @@
 				minimumVersion = 9.1.0;
 			};
 		};
+		CDWEBRTC012FA500000000001 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 149.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -705,6 +715,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = CDE1F0302F892473004A81D4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		CDWEBRTC022FA500000000002 /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CDWEBRTC012FA500000000001 /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
