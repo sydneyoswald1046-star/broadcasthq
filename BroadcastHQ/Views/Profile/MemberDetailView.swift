@@ -3,234 +3,369 @@ import SwiftUI
 struct MemberDetailView: View {
     let member: AppUser
     @State private var showDirectMessage: Bool = false
-    
+
     private var team: Team? { Team.find(member.team) }
     private var theme: RoleTheme { RoleTheme.forUser(member) }
-    private var isPrivileged: Bool { member.role == .admin || member.role == .teamLead }
     private var memberEquipment: [Equipment] {
         Equipment.samples.filter { $0.assignedTo == member.displayName }
     }
-    
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                profileHeader
-                statusBadge
-                messageButton
-                infoSection
-                equipmentSection
+            VStack(spacing: 0) {
+                heroHeader
+                    .padding(.bottom, 16)
+
+                VStack(spacing: 16) {
+                    quickActionsRow
+                    infoSection
+                    equipmentSection
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
-            .padding(.vertical)
         }
         .background(Color.bhqBackground)
-        .navigationTitle(member.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showDirectMessage) {
             DirectMessageView(member: member)
         }
     }
-    
-    // MARK: - Profile Header
-    private var profileHeader: some View {
-        VStack(spacing: 14) {
-            ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: isPrivileged ? theme.gradient : [team?.color ?? Color.bhqTint, (team?.color ?? Color.bhqTint).opacity(0.5)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+
+    // MARK: - Hero Header
+
+    private var heroHeader: some View {
+        ZStack(alignment: .bottom) {
+            // Gradient backdrop
+            LinearGradient(
+                colors: [theme.primary.opacity(0.18), Color.bhqBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(maxWidth: .infinity)
+            .frame(height: 260)
+
+            VStack(spacing: 14) {
+                // Avatar with animated gradient ring and glow
+                ZStack {
+                    // Glow behind avatar
+                    Circle()
+                        .fill(theme.glow.opacity(0.25))
+                        .frame(width: 150, height: 150)
+                        .blur(radius: 18)
+
+                    // Gradient ring
+                    Circle()
+                        .stroke(
+                            LinearGradient(
+                                colors: theme.gradient,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 3
                         )
+                        .frame(width: 128, height: 128)
+
+                    ProfileAvatar(
+                        userId: member.id,
+                        initials: member.initials,
+                        size: 120,
+                        color: theme.primary
                     )
-                    .frame(width: 100, height: 100)
-                    .overlay {
-                        Text(member.initials)
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundStyle(Color.white)
-                    }
-                    .overlay(
-                        Circle().stroke(
-                            isPrivileged
-                                ? LinearGradient(colors: [theme.secondary, theme.primary], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                : LinearGradient(colors: [statusColor, statusColor], startPoint: .top, endPoint: .bottom),
-                            lineWidth: isPrivileged ? 3 : 2
-                        )
-                        .frame(width: 108, height: 108)
-                    )
-                    .shadow(color: isPrivileged ? theme.glow.opacity(0.25) : Color.clear, radius: 10)
-                
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 20, height: 20)
-                    .overlay(Circle().stroke(Color.black, lineWidth: 3))
-            }
-            
-            Text(member.displayName)
-                .font(.system(size: 24, weight: .bold))
-            
-            // Themed role badge
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Image(systemName: theme.icon)
-                        .font(.system(size: 10, weight: .bold))
-                    Text(theme.badge)
-                        .font(.system(size: 12, weight: .bold))
-                        .tracking(0.5)
                 }
-                .foregroundStyle(theme.primary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .background(
-                    LinearGradient(colors: [theme.primary.opacity(0.15), theme.primary.opacity(0.08)],
-                                   startPoint: .leading, endPoint: .trailing)
-                )
-                .overlay(
-                    Capsule().stroke(theme.primary.opacity(isPrivileged ? 0.3 : 0), lineWidth: 0.5)
-                )
-                .clipShape(Capsule())
-                
-                if let team = team {
-                    HStack(spacing: 4) {
-                        Image(systemName: team.icon).font(.system(size: 10))
-                        Text(team.name).font(.system(size: 12, weight: .medium))
-                    }
-                    .foregroundStyle(team.color)
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(team.color.opacity(0.15))
-                    .clipShape(Capsule())
+
+                // Name
+                Text(member.displayName)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Color.white)
+
+                // Role + Team badges
+                HStack(spacing: 8) {
+                    roleBadge
+                    if let t = team { teamBadge(t) }
                 }
+
+                // Position subtitle
+                if !member.position.isEmpty {
+                    Text(member.position)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                }
+
+                // Status integrated into header
+                HStack(spacing: 6) {
+                    StatusIndicator(status: member.status, size: 8)
+                    Text(member.status.label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(statusColor)
+                }
+                .padding(.top, 2)
             }
-            
-            // Theme label
-            if isPrivileged {
-                Text("\(theme.name) Theme")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(theme.primary.opacity(0.6))
-                    .tracking(1)
-            }
-            
-            Text(member.position)
-                .font(.subheadline)
-                .foregroundStyle(Color.secondary)
+            .padding(.top, 24)
+            .padding(.bottom, 24)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
     }
-    
+
+    private var roleBadge: some View {
+        HStack(spacing: 4) {
+            Image(systemName: theme.icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(theme.badge)
+                .font(.system(size: 11, weight: .bold))
+                .tracking(0.6)
+        }
+        .foregroundStyle(theme.primary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 5)
+        .background(
+            LinearGradient(
+                colors: [theme.primary.opacity(0.18), theme.primary.opacity(0.08)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .overlay(Capsule().stroke(theme.primary.opacity(0.3), lineWidth: 0.5))
+        .clipShape(Capsule())
+    }
+
+    private func teamBadge(_ t: Team) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: t.icon).font(.system(size: 10))
+            Text(t.name).font(.system(size: 11, weight: .medium))
+        }
+        .foregroundStyle(t.color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(t.color.opacity(0.15))
+        .overlay(Capsule().stroke(t.color.opacity(0.25), lineWidth: 0.5))
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Quick Actions Row
+
+    private var quickActionsRow: some View {
+        HStack(spacing: 12) {
+            actionCard(
+                icon: "message.fill",
+                label: "Message",
+                accentColor: theme.primary
+            ) {
+                showDirectMessage = true
+            }
+
+            actionCard(
+                icon: "phone.fill",
+                label: "Call",
+                accentColor: theme.primary
+            ) {
+                // placeholder
+            }
+
+            actionCard(
+                icon: "key.fill",
+                label: "PIN",
+                accentColor: theme.primary
+            ) {
+                // placeholder
+            }
+        }
+    }
+
+    private func actionCard(
+        icon: String,
+        label: String,
+        accentColor: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(accentColor)
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.7))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color.bhqCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Info Section
+
+    private var infoSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("INFORMATION")
+
+            VStack(spacing: 0) {
+                infoRow(icon: "envelope.fill", label: "Email", value: member.email)
+                infoDivider
+                infoRow(
+                    icon: "person.badge.shield.checkmark",
+                    label: "Role",
+                    value: member.role.rawValue.replacingOccurrences(of: "_", with: " ").capitalized
+                )
+                infoDivider
+                infoRow(
+                    icon: "person.3.fill",
+                    label: "Team",
+                    value: member.team.capitalized
+                )
+                infoDivider
+                infoRow(icon: "briefcase.fill", label: "Position", value: member.position)
+                infoDivider
+                infoRow(icon: "clock", label: "Last Seen", value: member.loginTimeString)
+            }
+            .background(Color.bhqCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    private func infoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(theme.primary.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(theme.primary)
+            }
+
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.white.opacity(0.5))
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private var infoDivider: some View {
+        Divider()
+            .background(Color.white.opacity(0.08))
+            .padding(.leading, 60)
+    }
+
+    // MARK: - Equipment Section
+
+    private var equipmentSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader("ASSIGNED EQUIPMENT")
+
+            if memberEquipment.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "tray")
+                        .foregroundStyle(Color.white.opacity(0.3))
+                    Text("No equipment assigned")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.35))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 22)
+                .background(Color.bhqCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(memberEquipment.enumerated()), id: \.element.id) { index, item in
+                        equipmentRow(item)
+                        if index < memberEquipment.count - 1 {
+                            infoDivider
+                        }
+                    }
+                }
+                .background(Color.bhqCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+    }
+
+    private func equipmentRow(_ item: Equipment) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.bhqCardElevated)
+                    .frame(width: 32, height: 32)
+                Image(systemName: "wrench.and.screwdriver")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.5))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.white)
+                Text(item.type)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.white.opacity(0.45))
+            }
+
+            Spacer()
+
+            conditionBadge(item)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private func conditionBadge(_ item: Equipment) -> some View {
+        let (label, color): (String, Color) = item.hasIssue
+            ? (item.condition.rawValue.uppercased(), item.condition == .missing ? Color.bhqYellow : Color.bhqTint)
+            : ("OK", Color.bhqGreen)
+
+        return Text(label)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.15))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+
+    // MARK: - Helpers
+
+    private func sectionHeader(_ title: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(Color(red: 0.85, green: 0.70, blue: 0.30)) // gold accent dot
+                .frame(width: 5, height: 5)
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.4))
+                .tracking(1.2)
+        }
+    }
+
     private var statusColor: Color {
         switch member.status {
         case .online: return Color.bhqGreen
         case .busy: return Color.bhqYellow
         case .offline: return Color(.systemGray3)
-        }
-    }
-    
-    // MARK: - Status Badge
-    private var statusBadge: some View {
-        HStack(spacing: 8) {
-            Circle().fill(statusColor).frame(width: 10, height: 10)
-            Text(member.status == .online ? "Online" : member.status == .busy ? "Busy" : "Offline")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(statusColor)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(statusColor.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-    }
-    
-    // MARK: - Message Button
-    private var messageButton: some View {
-        Button { showDirectMessage = true } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "message.fill").font(.system(size: 16, weight: .semibold))
-                Text("Message \(member.displayName.split(separator: " ").first ?? "")").font(.system(size: 16, weight: .semibold))
-                Spacer()
-                Image(systemName: "mic.fill").font(.system(size: 14)).foregroundStyle(Color.white.opacity(0.7))
-                Text("PTT").font(.system(size: 12, weight: .bold)).foregroundStyle(Color.white.opacity(0.7))
-            }
-            .foregroundStyle(Color.white)
-            .padding(.horizontal, 20).padding(.vertical, 14)
-            .background(LinearGradient(colors: [Color.bhqBlue, Color.bhqBlue.opacity(0.8)], startPoint: .leading, endPoint: .trailing))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .padding(.horizontal)
-    }
-    
-    // MARK: - Info Section
-    private var infoSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("INFORMATION").font(.footnote).foregroundStyle(Color.secondary).padding(.horizontal)
-            VStack(spacing: 0) {
-                infoRow(icon: "envelope.fill", label: "Email", value: member.email)
-                Divider().padding(.leading, 52)
-                infoRow(icon: "person.badge.shield.checkmark", label: "Role", value: member.role.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
-                Divider().padding(.leading, 52)
-                infoRow(icon: "person.3.fill", label: "Team", value: member.team.capitalized)
-                Divider().padding(.leading, 52)
-                infoRow(icon: "briefcase.fill", label: "Position", value: member.position)
-                Divider().padding(.leading, 52)
-                infoRow(icon: "clock", label: "Last Seen", value: member.loginTimeString)
-            }
-            .background(Color.bhqCard)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal)
-        }
-    }
-    
-    private func infoRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon).font(.system(size: 14)).foregroundStyle(Color.secondary)
-                .frame(width: 28, height: 28).background(Color(.systemFill)).clipShape(RoundedRectangle(cornerRadius: 6))
-            Text(label).font(.body).foregroundStyle(Color.secondary)
-            Spacer()
-            Text(value).font(.body).foregroundStyle(Color.primary).lineLimit(1)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 11)
-    }
-    
-    // MARK: - Equipment Section
-    private var equipmentSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("ASSIGNED EQUIPMENT").font(.footnote).foregroundStyle(Color.secondary).padding(.horizontal)
-            if memberEquipment.isEmpty {
-                HStack {
-                    Image(systemName: "tray").foregroundStyle(Color.secondary)
-                    Text("No equipment assigned").font(.subheadline).foregroundStyle(Color.secondary)
-                }
-                .frame(maxWidth: .infinity).padding(.vertical, 20)
-                .background(Color.bhqCard).clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(memberEquipment.enumerated()), id: \.element.id) { index, item in
-                        HStack(spacing: 12) {
-                            Image(systemName: "wrench.and.screwdriver").font(.system(size: 14)).foregroundStyle(Color.secondary)
-                                .frame(width: 28, height: 28).background(Color(.systemFill)).clipShape(RoundedRectangle(cornerRadius: 6))
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(item.name).font(.body)
-                                Text(item.type).font(.subheadline).foregroundStyle(Color.secondary)
-                            }
-                            Spacer()
-                            if item.hasIssue {
-                                Text(item.condition.rawValue.uppercased())
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(item.condition == .missing ? Color.bhqYellow : Color.bhqTint)
-                                    .padding(.horizontal, 6).padding(.vertical, 3)
-                                    .background((item.condition == .missing ? Color.bhqYellow : Color.bhqTint).opacity(0.15))
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            } else {
-                                Text("OK").font(.system(size: 10, weight: .semibold)).foregroundStyle(Color.bhqGreen)
-                                    .padding(.horizontal, 6).padding(.vertical, 3)
-                                    .background(Color.bhqGreen.opacity(0.15)).clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-                        }
-                        .padding(.horizontal, 16).padding(.vertical, 11)
-                        if index < memberEquipment.count - 1 { Divider().padding(.leading, 52) }
-                    }
-                }
-                .background(Color.bhqCard).clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal)
-            }
         }
     }
 }
