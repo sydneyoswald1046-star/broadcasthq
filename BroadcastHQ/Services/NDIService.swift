@@ -1,6 +1,7 @@
 import Combine
 import CoreGraphics
 import Foundation
+import QuartzCore
 import UIKit
 
 #if targetEnvironment(simulator)
@@ -51,6 +52,8 @@ class NDIService: ObservableObject {
     private var findQueue: DispatchQueue?
     private var isReceiving: Bool = false
     private var isFinding: Bool = false
+    private var lastFrameTime: CFTimeInterval = 0
+    private let minFrameInterval: CFTimeInterval = 1.0 / 30.0
 
     init() {
         initialize()
@@ -75,12 +78,23 @@ class NDIService: ObservableObject {
     // MARK: - Find Sources
 
     func startSearching() {
-        guard isInitialized, !isFinding else { return }
+        if !isInitialized {
+            initialize()
+        }
+        guard isInitialized else {
+            DispatchQueue.main.async {
+                self.lastError = "NDI SDK failed to initialize"
+            }
+            return
+        }
+        guard !isFinding else { return }
         isFinding = true
 
-        DispatchQueue.main.async { self.isSearching = true }
+        DispatchQueue.main.async {
+            self.isSearching = true
+            self.lastError = nil
+        }
 
-        // Create finder
         if finder == nil {
             var findSettings = NDIlib_find_create_t()
             findSettings.show_local_sources = true
@@ -101,13 +115,9 @@ class NDIService: ObservableObject {
         findQueue?.async { [weak self] in
             guard let self = self else { return }
 
-            // NDI discovery (mDNS) is asynchronous — a source often appears a second or
-            // two after the finder starts. Poll for up to ~12s and reveal the list as
-            // soon as anything shows up, instead of taking a single 5s snapshot (which
-            // frequently comes back empty on the first try even when a source exists).
-            let deadline = Date().addingTimeInterval(12)
+            let deadline = Date().addingTimeInterval(30)
             repeat {
-                let _ = NDIlib_find_wait_for_sources(finder, 1000) // wait up to 1s for a change
+                let _ = NDIlib_find_wait_for_sources(finder, 2000)
 
                 var numSources: UInt32 = 0
                 let sourcesPtr = NDIlib_find_get_current_sources(finder, &numSources)
@@ -126,19 +136,17 @@ class NDIService: ObservableObject {
                     self.availableSources = current
                     if !current.isEmpty {
                         self.lastError = nil
-                        self.isSearching = false // reveal the list immediately
+                        self.isSearching = false
                     }
                 }
 
-                // Stop once we've found at least one source. This also leaves the finder
-                // idle so connect(to:) can safely re-query it without a data race.
                 if !names.isEmpty { break }
             } while self.isFinding && Date() < deadline
 
             DispatchQueue.main.async {
                 self.isSearching = false
                 if self.availableSources.isEmpty {
-                    self.lastError = "No NDI sources found on this network"
+                    self.lastError = "No NDI sources found — check same WiFi network and Local Network permission in Settings"
                 }
             }
             self.isFinding = false
@@ -181,7 +189,7 @@ class NDIService: ObservableObject {
         var recvSettings = NDIlib_recv_create_v3_t()
         recvSettings.source_to_connect_to = source
         recvSettings.color_format = NDIlib_recv_color_format_BGRX_BGRA
-        recvSettings.bandwidth = NDIlib_recv_bandwidth_highest
+        recvSettings.bandwidth = NDIlib_recv_bandwidth_lowest
         recvSettings.allow_video_fields = true
         recvSettings.p_ndi_recv_name = nil
 
@@ -257,34 +265,49 @@ class NDIService: ObservableObject {
     }
 
     private func processVideoFrame(_ frame: inout NDIlib_video_frame_v2_t, receiver: NDIlib_recv_instance_t) {
+        let now = CACurrentMediaTime()
+        guard now - lastFrameTime >= minFrameInterval else { return }
+        lastFrameTime = now
+
         let width = Int(frame.xres)
         let height = Int(frame.yres)
         let stride = Int(frame.line_stride_in_bytes)
 
         guard width > 0, height > 0, let data = frame.p_data else { return }
 
-        // Update resolution and frame rate on main thread (throttled)
         let resString = "\(width)×\(height)"
         let fpsNum = frame.frame_rate_N
         let fpsDen = frame.frame_rate_D
         let fps = fpsDen > 0 ? Double(fpsNum) / Double(fpsDen) : 0
         let fpsString = String(format: "%.1f fps", fps)
 
-        // Create CGImage from BGRA data
+        let byteCount = stride * height
+        let dataCopy = UnsafeMutableRawPointer.allocate(byteCount: byteCount, alignment: 8)
+        dataCopy.copyMemory(from: data, byteCount: byteCount)
+
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
 
-        guard let context = CGContext(
-            data: UnsafeMutableRawPointer(mutating: data),
+        guard let provider = CGDataProvider(dataInfo: dataCopy, data: dataCopy, size: byteCount, releaseData: { info, _, _ in
+            info?.deallocate()
+        }) else {
+            dataCopy.deallocate()
+            return
+        }
+
+        guard let cgImage = CGImage(
             width: width,
             height: height,
             bitsPerComponent: 8,
+            bitsPerPixel: 32,
             bytesPerRow: stride,
             space: colorSpace,
-            bitmapInfo: bitmapInfo.rawValue
+            bitmapInfo: bitmapInfo,
+            provider: provider,
+            decode: nil,
+            shouldInterpolate: false,
+            intent: .defaultIntent
         ) else { return }
-
-        guard let cgImage = context.makeImage() else { return }
 
         DispatchQueue.main.async { [weak self] in
             self?.currentFrame = cgImage

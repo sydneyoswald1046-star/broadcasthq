@@ -35,6 +35,7 @@
 		<string>_valorlive-ptt._tcp</string>
 		<string>_vl-setup._tcp</string>
 		<string>_ndi._tcp</string>
+		<string>_ndi._udp</string>
 		<string>_ndi-disc._tcp</string>
 	</array>
 </dict>

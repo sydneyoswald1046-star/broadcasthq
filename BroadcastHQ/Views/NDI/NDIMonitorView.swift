@@ -158,13 +158,14 @@ struct NDIMonitorView: View {
                 Text(error)
                     .font(.system(size: 12))
                     .foregroundStyle(Color.bhqTint)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
             }
-            
-            // Instructions
+
             VStack(alignment: .leading, spacing: 12) {
-                instructionRow(number: "1", text: "Make sure your NDI source is on the same WiFi network")
-                instructionRow(number: "2", text: "Tap Find Sources to discover available streams")
-                instructionRow(number: "3", text: "Select a source to start monitoring")
+                instructionRow(number: "1", text: "Ensure NDI source is on the same WiFi network")
+                instructionRow(number: "2", text: "Allow Local Network access in Settings > Privacy")
+                instructionRow(number: "3", text: "Tap Find Sources — discovery may take up to 30s")
             }
             .padding(.horizontal, 30)
             .padding(.top, 10)
