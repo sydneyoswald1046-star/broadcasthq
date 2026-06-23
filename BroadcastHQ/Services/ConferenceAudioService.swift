@@ -159,13 +159,12 @@ class ConferenceAudioService: ObservableObject {
 
     @Published var speakingPeers: Set<String> = []
 
-    /// True once joinRoom has been called and the room hasn't been left yet.
-    var isInRoom: Bool { roomId != nil }
+    var isInRoom: Bool { queue.sync { roomId != nil } }
 
     // MARK: - Private state
 
+    private let queue = DispatchQueue(label: "com.valorlive.conference.audio", qos: .userInitiated)
     private var peerConnections: [String: RTCPeerConnection] = [:]
-    // Retain delegates so they aren't deallocated while the peer connection is alive.
     private var peerDelegates: [String: PeerConnectionDelegate] = [:]
     private var localAudioTrack: RTCAudioTrack?
     private var factory: RTCPeerConnectionFactory?
@@ -185,69 +184,73 @@ class ConferenceAudioService: ObservableObject {
     // MARK: - Public API
 
     func joinRoom(roomId: String, userId: String, existingParticipantIds: [String]) {
-        self.roomId = roomId
-        self.userId = userId
+        queue.async { [self] in
+            self.roomId = roomId
+            self.userId = userId
 
-        setupFactory()
-        setupLocalAudio()
-        listenForSignaling()
+            setupFactory()
+            setupLocalAudio()
+            listenForSignaling()
 
-        // Alphabetically lower userId is always the offerer to avoid offer collisions.
-        for peerId in existingParticipantIds where peerId != userId {
-            if userId < peerId {
-                createOffer(for: peerId)
+            for peerId in existingParticipantIds where peerId != userId {
+                if userId < peerId {
+                    createOffer(for: peerId)
+                }
             }
-            // If userId > peerId, we wait — the other peer will send us an offer.
         }
     }
 
     func leaveRoom() {
-        signalingListener?.remove()
-        signalingListener = nil
+        queue.async { [self] in
+            signalingListener?.remove()
+            signalingListener = nil
 
-        for (_, pc) in peerConnections { pc.close() }
-        peerConnections.removeAll()
-        peerDelegates.removeAll()
-        localAudioTrack = nil
+            for (_, pc) in peerConnections { pc.close() }
+            peerConnections.removeAll()
+            peerDelegates.removeAll()
+            localAudioTrack = nil
 
-        DispatchQueue.main.async { self.speakingPeers.removeAll() }
+            DispatchQueue.main.async { self.speakingPeers.removeAll() }
 
-        // Restore audio session to a neutral state.
-        RTCAudioSession.sharedInstance().lockForConfiguration()
-        let config = RTCAudioSessionConfiguration()
-        config.category = AVAudioSession.Category.ambient.rawValue
-        config.mode = AVAudioSession.Mode.default.rawValue
-        try? RTCAudioSession.sharedInstance().setConfiguration(config)
-        RTCAudioSession.sharedInstance().unlockForConfiguration()
+            RTCAudioSession.sharedInstance().lockForConfiguration()
+            let config = RTCAudioSessionConfiguration()
+            config.category = AVAudioSession.Category.ambient.rawValue
+            config.mode = AVAudioSession.Mode.default.rawValue
+            try? RTCAudioSession.sharedInstance().setConfiguration(config)
+            RTCAudioSession.sharedInstance().unlockForConfiguration()
 
-        roomId = nil
-        userId = nil
-        factory = nil
-    }
-
-    func setMuted(_ muted: Bool) {
-        localAudioTrack?.isEnabled = !muted
-    }
-
-    /// Called when a new participant joins an already-active room.
-    func handleNewParticipant(_ peerId: String) {
-        guard let userId = userId, peerId != userId else { return }
-        guard peerConnections[peerId] == nil else { return }
-        // Only the alphabetically lower userId creates the offer.
-        if userId < peerId {
-            createOffer(for: peerId)
+            roomId = nil
+            userId = nil
+            factory = nil
         }
     }
 
-    /// Called when a participant leaves the room (detected via Firestore participant list diff).
-    func handleParticipantLeft(_ peerId: String) {
-        peerConnections[peerId]?.close()
-        peerConnections.removeValue(forKey: peerId)
-        peerDelegates.removeValue(forKey: peerId)
-        DispatchQueue.main.async { self.speakingPeers.remove(peerId) }
+    func setMuted(_ muted: Bool) {
+        queue.async { [self] in
+            localAudioTrack?.isEnabled = !muted
+        }
     }
 
-    // MARK: - Setup
+    func handleNewParticipant(_ peerId: String) {
+        queue.async { [self] in
+            guard let userId = userId, peerId != userId else { return }
+            guard peerConnections[peerId] == nil else { return }
+            if userId < peerId {
+                createOffer(for: peerId)
+            }
+        }
+    }
+
+    func handleParticipantLeft(_ peerId: String) {
+        queue.async { [self] in
+            peerConnections[peerId]?.close()
+            peerConnections.removeValue(forKey: peerId)
+            peerDelegates.removeValue(forKey: peerId)
+            DispatchQueue.main.async { self.speakingPeers.remove(peerId) }
+        }
+    }
+
+    // MARK: - Setup (called on queue)
 
     private func setupFactory() {
         RTCInitializeSSL()
@@ -273,7 +276,7 @@ class ConferenceAudioService: ObservableObject {
         localAudioTrack?.isEnabled = true
     }
 
-    // MARK: - Peer Connection Management
+    // MARK: - Peer Connection Management (called on queue)
 
     private func createPeerConnection(for peerId: String) -> RTCPeerConnection? {
         guard let factory = factory else { return nil }
@@ -306,17 +309,19 @@ class ConferenceAudioService: ObservableObject {
         pc.offer(for: constraints) { [weak self] sdp, error in
             guard let self = self, let sdp = sdp, error == nil else { return }
             pc.setLocalDescription(sdp) { error in
-                guard error == nil, let roomId = self.roomId, let userId = self.userId else { return }
-                Task {
-                    try? await self.firestore.writeSignalingOffer(
-                        roomId: roomId, fromUserId: userId, toUserId: peerId, sdp: sdp.sdp
-                    )
+                self.queue.async {
+                    guard error == nil, let roomId = self.roomId, let userId = self.userId else { return }
+                    Task {
+                        try? await self.firestore.writeSignalingOffer(
+                            roomId: roomId, fromUserId: userId, toUserId: peerId, sdp: sdp.sdp
+                        )
+                    }
                 }
             }
         }
     }
 
-    // MARK: - Signaling Handlers
+    // MARK: - Signaling Handlers (called on queue)
 
     private func handleOffer(from peerId: String, sdp: String) {
         let pc = peerConnections[peerId] ?? createPeerConnection(for: peerId)
@@ -332,11 +337,13 @@ class ConferenceAudioService: ObservableObject {
             pc.answer(for: constraints) { answer, error in
                 guard let answer = answer, error == nil else { return }
                 pc.setLocalDescription(answer) { error in
-                    guard error == nil, let roomId = self.roomId, let userId = self.userId else { return }
-                    Task {
-                        try? await self.firestore.writeSignalingAnswer(
-                            roomId: roomId, fromUserId: userId, toUserId: peerId, sdp: answer.sdp
-                        )
+                    self.queue.async {
+                        guard error == nil, let roomId = self.roomId, let userId = self.userId else { return }
+                        Task {
+                            try? await self.firestore.writeSignalingAnswer(
+                                roomId: roomId, fromUserId: userId, toUserId: peerId, sdp: answer.sdp
+                            )
+                        }
                     }
                 }
             }
@@ -351,7 +358,6 @@ class ConferenceAudioService: ObservableObject {
 
     private func handleIceCandidate(from peerId: String, candidateString: String) {
         guard let pc = peerConnections[peerId] else { return }
-        // Encoded as JSON: {"sdp": ..., "sdpMLineIndex": ..., "sdpMid": ...}
         guard let data = candidateString.data(using: .utf8),
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let sdp = dict["sdp"] as? String,
@@ -372,34 +378,37 @@ class ConferenceAudioService: ObservableObject {
         signalingListener?.remove()
         signalingListener = firestore.listenToSignaling(roomId: roomId, forUserId: userId) { [weak self] signal in
             guard let self = self else { return }
-            // Only handle offer if we don't already have a peer connection for this peer.
-            if let offer = signal.offer, self.peerConnections[signal.fromUserId] == nil {
-                self.handleOffer(from: signal.fromUserId, sdp: offer)
-            }
-            if let answer = signal.answer {
-                self.handleAnswer(from: signal.fromUserId, sdp: answer)
-            }
-            for candidate in signal.iceCandidates {
-                self.handleIceCandidate(from: signal.fromUserId, candidateString: candidate)
+            self.queue.async {
+                if let offer = signal.offer, self.peerConnections[signal.fromUserId] == nil {
+                    self.handleOffer(from: signal.fromUserId, sdp: offer)
+                }
+                if let answer = signal.answer {
+                    self.handleAnswer(from: signal.fromUserId, sdp: answer)
+                }
+                for candidate in signal.iceCandidates {
+                    self.handleIceCandidate(from: signal.fromUserId, candidateString: candidate)
+                }
             }
         }
     }
 
-    // MARK: - Delegate Callbacks (called from PeerConnectionDelegate)
+    // MARK: - Delegate Callbacks (dispatched to queue)
 
     fileprivate func didGenerateIceCandidate(_ candidate: RTCIceCandidate, for peerId: String) {
-        guard let roomId = roomId, let userId = userId else { return }
-        let dict: [String: Any] = [
-            "sdp": candidate.sdp,
-            "sdpMLineIndex": candidate.sdpMLineIndex,
-            "sdpMid": candidate.sdpMid ?? "",
-        ]
-        guard let data = try? JSONSerialization.data(withJSONObject: dict),
-              let candidateString = String(data: data, encoding: .utf8) else { return }
-        Task {
-            try? await firestore.addIceCandidate(
-                roomId: roomId, fromUserId: userId, toUserId: peerId, candidate: candidateString
-            )
+        queue.async { [self] in
+            guard let roomId = roomId, let userId = userId else { return }
+            let dict: [String: Any] = [
+                "sdp": candidate.sdp,
+                "sdpMLineIndex": candidate.sdpMLineIndex,
+                "sdpMid": candidate.sdpMid ?? "",
+            ]
+            guard let data = try? JSONSerialization.data(withJSONObject: dict),
+                  let candidateString = String(data: data, encoding: .utf8) else { return }
+            Task {
+                try? await self.firestore.addIceCandidate(
+                    roomId: roomId, fromUserId: userId, toUserId: peerId, candidate: candidateString
+                )
+            }
         }
     }
 

@@ -11,6 +11,7 @@
 		CD5914CB2FC9FB3500652F43 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914CA2FC9FB3500652F43 /* Accelerate.framework */; };
 		CD5914CD2FC9FB8700652F43 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CD5914CC2FC9FB8700652F43 /* VideoToolbox.framework */; };
 		CDA3AEDA2FAE74E3004872CB /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CDA3AED92FAE74E3004872CB /* FirebaseMessaging */; };
+		CDB398242FE7A2E400C6856C /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = CDWEBRTC022FA500000000002 /* WebRTC */; };
 		CDE1F02B2F891A18004A81D4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CDE1F02A2F891A18004A81D4 /* FirebaseAuth */; };
 		CDE1F02D2F891A18004A81D4 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CDE1F02C2F891A18004A81D4 /* FirebaseFirestore */; };
 		CDE1F0322F892473004A81D4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = CDE1F0312F892473004A81D4 /* GoogleSignIn */; };
@@ -68,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDB398242FE7A2E400C6856C /* WebRTC in Frameworks */,
 				CD5914CD2FC9FB8700652F43 /* VideoToolbox.framework in Frameworks */,
 				CDE1F02B2F891A18004A81D4 /* FirebaseAuth in Frameworks */,
 				CD5914CB2FC9FB3500652F43 /* Accelerate.framework in Frameworks */,
@@ -469,7 +471,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.3.0;
 				OTHER_LDFLAGS = "-lc++";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
@@ -519,7 +521,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.1.2;
+				MARKETING_VERSION = 1.3.0;
 				OTHER_LDFLAGS = "-lc++";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
