@@ -599,7 +599,7 @@ class AuthState: ObservableObject {
             currentUser = account.toAppUser(); status = .loggedIn; startReminderCheck(); return true
         }
         if let pending = accounts.first(where: { $0.pin == pin && !$0.isApproved }) {
-            currentUser = pending.toAppUser(); status = .pendingApproval; return true
+            currentUser = pending.toAppUser(); status = .pendingApproval; startApprovalListener(); return true
         }
         return false
     }
@@ -664,6 +664,8 @@ class AuthState: ObservableObject {
                     if result.account.isApproved {
                         startListeners()
                         startReminderCheck()
+                    } else {
+                        startApprovalListener()
                     }
                 }
                 return (true, false)
@@ -706,6 +708,8 @@ class AuthState: ObservableObject {
                     if result.account.isApproved {
                         startListeners()
                         startReminderCheck()
+                    } else {
+                        startApprovalListener()
                     }
                 }
                 return true
@@ -780,6 +784,7 @@ class AuthState: ObservableObject {
             if role == .admin { seedInitialSegments() }
         } else {
             status = .pendingApproval
+            startApprovalListener()
         }
     }
     

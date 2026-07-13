@@ -166,9 +166,11 @@ class ConferenceAudioService: ObservableObject {
     private let queue = DispatchQueue(label: "com.valorlive.conference.audio", qos: .userInitiated)
     private var peerConnections: [String: RTCPeerConnection] = [:]
     private var peerDelegates: [String: PeerConnectionDelegate] = [:]
+    private var processedCandidates: [String: Set<String>] = [:]
     private var localAudioTrack: RTCAudioTrack?
     private var factory: RTCPeerConnectionFactory?
     private var signalingListener: ListenerRegistration?
+    private static var sslInitialized = false
 
     private var roomId: String?
     private var userId: String?
@@ -208,6 +210,7 @@ class ConferenceAudioService: ObservableObject {
             for (_, pc) in peerConnections { pc.close() }
             peerConnections.removeAll()
             peerDelegates.removeAll()
+            processedCandidates.removeAll()
             localAudioTrack = nil
 
             DispatchQueue.main.async { self.speakingPeers.removeAll() }
@@ -246,6 +249,7 @@ class ConferenceAudioService: ObservableObject {
             peerConnections[peerId]?.close()
             peerConnections.removeValue(forKey: peerId)
             peerDelegates.removeValue(forKey: peerId)
+            processedCandidates.removeValue(forKey: peerId)
             DispatchQueue.main.async { self.speakingPeers.remove(peerId) }
         }
     }
@@ -253,7 +257,10 @@ class ConferenceAudioService: ObservableObject {
     // MARK: - Setup (called on queue)
 
     private func setupFactory() {
-        RTCInitializeSSL()
+        if !Self.sslInitialized {
+            RTCInitializeSSL()
+            Self.sslInitialized = true
+        }
         let encoderFactory = RTCDefaultVideoEncoderFactory()
         let decoderFactory = RTCDefaultVideoDecoderFactory()
         factory = RTCPeerConnectionFactory(encoderFactory: encoderFactory, decoderFactory: decoderFactory)
@@ -357,6 +364,7 @@ class ConferenceAudioService: ObservableObject {
     }
 
     private func handleIceCandidate(from peerId: String, candidateString: String) {
+        if processedCandidates[peerId]?.contains(candidateString) == true { return }
         guard let pc = peerConnections[peerId] else { return }
         guard let data = candidateString.data(using: .utf8),
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -370,6 +378,7 @@ class ConferenceAudioService: ObservableObject {
             sdpMLineIndex: sdpMLineIndex,
             sdpMid: sdpMid.flatMap { $0.isEmpty ? nil : $0 }
         )
+        processedCandidates[peerId, default: []].insert(candidateString)
         pc.add(candidate) { _ in }
     }
 
