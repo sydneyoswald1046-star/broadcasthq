@@ -832,6 +832,8 @@ class AuthState: ObservableObject {
         alertsListener?.remove()
         pttListener?.remove()
         teamAlertListener?.remove()
+        approvalListener?.remove()
+        approvalListener = nil
         reminderTimer?.invalidate()
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
