@@ -23,6 +23,7 @@ struct ConferenceRoom: Identifiable, Codable {
     var invitedUserIds: [String]
     var participants: [ConferenceParticipant]
     var isActive: Bool
+    var emptySince: Date?
 
     var participantCount: Int { participants.count }
     var isEmpty: Bool { participants.isEmpty }

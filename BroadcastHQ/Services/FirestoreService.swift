@@ -832,9 +832,15 @@ class FirestoreService {
                 var participants = (data["participants"] as? [[String: Any]]) ?? []
                 participants.removeAll { $0["userId"] as? String == userId }
                 if participants.isEmpty {
-                    txn.updateData(["participants": [], "isActive": false], forDocument: ref)
+                    txn.updateData([
+                        "participants": [],
+                        "emptySince": Timestamp(date: Date())
+                    ], forDocument: ref)
                 } else {
-                    txn.updateData(["participants": participants], forDocument: ref)
+                    txn.updateData([
+                        "participants": participants,
+                        "emptySince": FieldValue.delete()
+                    ], forDocument: ref)
                 }
                 return true
             }) { (result, error) in
@@ -892,9 +898,11 @@ class FirestoreService {
                         else { return nil }
                         return ConferenceParticipant(userId: userId, displayName: displayName, joinedAt: joinedAt, lastSeen: lastSeen)
                     }
+                    let emptySince = (data["emptySince"] as? Timestamp)?.dateValue()
                     return ConferenceRoom(id: doc.documentID, name: name, createdBy: createdBy,
                         createdByName: createdByName, createdAt: createdAt, accessMode: accessMode,
-                        invitedUserIds: invitedUserIds, participants: participants, isActive: isActive)
+                        invitedUserIds: invitedUserIds, participants: participants, isActive: isActive,
+                        emptySince: emptySince)
                 }
                 onChange(rooms)
             }
@@ -922,9 +930,11 @@ class FirestoreService {
                     else { return nil }
                     return ConferenceParticipant(userId: userId, displayName: displayName, joinedAt: joinedAt, lastSeen: lastSeen)
                 }
+                let emptySince = (data["emptySince"] as? Timestamp)?.dateValue()
                 let room = ConferenceRoom(id: snapshot!.documentID, name: name, createdBy: createdBy,
                     createdByName: createdByName, createdAt: createdAt, accessMode: accessMode,
-                    invitedUserIds: invitedUserIds, participants: participants, isActive: isActive)
+                    invitedUserIds: invitedUserIds, participants: participants, isActive: isActive,
+                    emptySince: emptySince)
                 onChange(room)
             }
     }

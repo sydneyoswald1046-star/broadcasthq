@@ -148,22 +148,20 @@ struct ConferenceRoomView: View {
                 }
             }
 
-            // End Room (creator only)
-            if isCreator {
-                Button { showEndConfirmation = true } label: {
-                    VStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.red.opacity(0.15))
-                            .frame(width: 56, height: 56)
-                            .overlay {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(Color.red)
-                            }
-                        Text("End")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(Color.secondary)
-                    }
+            // End Room (available to everyone)
+            Button { showEndConfirmation = true } label: {
+                VStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.red.opacity(0.15))
+                        .frame(width: 56, height: 56)
+                        .overlay {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(Color.red)
+                        }
+                    Text("End")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.secondary)
                 }
             }
         }

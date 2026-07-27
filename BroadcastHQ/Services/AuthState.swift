@@ -308,6 +308,8 @@ class AuthState: ObservableObject {
                 self.conferenceRooms = rooms.filter { room in
                     room.accessMode == .open || room.createdBy == userId || room.invitedUserIds.contains(userId)
                 }
+                // Auto-close rooms empty for 10+ minutes
+                self.cleanupEmptyConferenceRooms()
             }
         }
 
@@ -570,6 +572,17 @@ class AuthState: ObservableObject {
         let roomId = room.id
         leaveConference()
         Task { try? await firestore.endConferenceRoom(roomId: roomId) }
+    }
+
+    private func cleanupEmptyConferenceRooms() {
+        let now = Date()
+        for room in conferenceRooms where room.isEmpty {
+            if let emptySince = room.emptySince,
+               now.timeIntervalSince(emptySince) >= 600 {
+                let roomId = room.id
+                Task { try? await firestore.endConferenceRoom(roomId: roomId) }
+            }
+        }
     }
 
     func toggleMute() {
