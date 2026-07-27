@@ -1,3 +1,4 @@
+import ActivityKit
 import Combine
 import SwiftUI
 import FirebaseFirestore
@@ -76,6 +77,9 @@ class AuthState: ObservableObject {
     private var activeRoomListener: ListenerRegistration?
     private var conferenceHeartbeatTimer: Timer?
     private var backgroundConferenceTimer: Timer?
+    private var liveActivity: Activity<ConferenceActivityAttributes>?
+    private var liveActivityTimer: Timer?
+    private var conferenceJoinTime: Date?
 
     var isInConference: Bool { activeConferenceRoom != nil }
 
@@ -117,6 +121,7 @@ class AuthState: ObservableObject {
         pttListener?.remove(); reminderTimer?.invalidate()
         conferenceRoomsListener?.remove(); activeRoomListener?.remove()
         conferenceHeartbeatTimer?.invalidate(); backgroundConferenceTimer?.invalidate()
+        liveActivityTimer?.invalidate()
     }
     
     private func loadOrgName() {
@@ -500,6 +505,7 @@ class AuthState: ObservableObject {
                             }
 
                             self.activeConferenceRoom = room
+                            self.updateConferenceLiveActivity()
 
                             // Start audio service on first room snapshot (when participant list is available).
                             if !ConferenceAudioService.shared.isInRoom {
@@ -533,6 +539,8 @@ class AuthState: ObservableObject {
         }
 
         isMuted = false
+        conferenceJoinTime = Date()
+        startConferenceLiveActivity(roomId: roomId, roomName: "")
     }
 
     func leaveConference() {
@@ -546,6 +554,7 @@ class AuthState: ObservableObject {
         let userId = user.id
         activeConferenceRoom = nil
         isMuted = false
+        endConferenceLiveActivity()
 
         // Tear down all WebRTC peer connections before cleaning up signaling.
         ConferenceAudioService.shared.leaveRoom()
@@ -566,6 +575,80 @@ class AuthState: ObservableObject {
     func toggleMute() {
         isMuted.toggle()
         ConferenceAudioService.shared.setMuted(isMuted)
+        updateConferenceLiveActivity()
+    }
+
+    // MARK: - Live Activity
+
+    private func startConferenceLiveActivity(roomId: String, roomName: String) {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+        let attributes = ConferenceActivityAttributes(
+            roomName: roomName.isEmpty ? "Conference Room" : roomName,
+            roomId: roomId,
+            creatorName: currentUser?.displayName ?? ""
+        )
+        let initialState = ConferenceActivityAttributes.ContentState(
+            participantCount: 1,
+            participantNames: [currentUser?.displayName ?? "You"],
+            isMuted: isMuted,
+            elapsedSeconds: 0,
+            isNoiseCancellationOn: true
+        )
+
+        do {
+            let activity = try Activity.request(
+                attributes: attributes,
+                content: .init(state: initialState, staleDate: nil),
+                pushType: nil
+            )
+            liveActivity = activity
+
+            liveActivityTimer?.invalidate()
+            liveActivityTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                self?.updateConferenceLiveActivity()
+            }
+        } catch {
+            print("Live Activity start failed: \(error)")
+        }
+    }
+
+    private func updateConferenceLiveActivity() {
+        guard let activity = liveActivity else { return }
+        let elapsed = Int(Date().timeIntervalSince(conferenceJoinTime ?? Date()))
+        let room = activeConferenceRoom
+        let names = room?.participants.map { $0.displayName } ?? [currentUser?.displayName ?? "You"]
+
+        let state = ConferenceActivityAttributes.ContentState(
+            participantCount: room?.participantCount ?? 1,
+            participantNames: names,
+            isMuted: isMuted,
+            elapsedSeconds: elapsed,
+            isNoiseCancellationOn: true
+        )
+
+        Task {
+            await activity.update(.init(state: state, staleDate: nil))
+        }
+    }
+
+    private func endConferenceLiveActivity() {
+        liveActivityTimer?.invalidate()
+        liveActivityTimer = nil
+        conferenceJoinTime = nil
+
+        guard let activity = liveActivity else { return }
+        let finalState = ConferenceActivityAttributes.ContentState(
+            participantCount: 0,
+            participantNames: [],
+            isMuted: false,
+            elapsedSeconds: 0,
+            isNoiseCancellationOn: false
+        )
+        Task {
+            await activity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: .immediate)
+        }
+        liveActivity = nil
     }
 
     func handleBackgrounded() {
