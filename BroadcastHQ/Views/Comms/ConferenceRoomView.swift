@@ -8,6 +8,13 @@ struct ConferenceRoomView: View {
     private var isCreator: Bool {
         room?.createdBy == authState.currentUser?.id
     }
+    private var creatorInRoom: Bool {
+        guard let room = room else { return false }
+        return room.participants.contains { $0.userId == room.createdBy }
+    }
+    private var canEndRoom: Bool {
+        isCreator || !creatorInRoom
+    }
 
     var body: some View {
         if let room = room {
@@ -148,7 +155,8 @@ struct ConferenceRoomView: View {
                 }
             }
 
-            // End Room (available to everyone)
+            // End Room (creator always, others only when creator has left)
+            if canEndRoom {
             Button { showEndConfirmation = true } label: {
                 VStack(spacing: 6) {
                     Circle()
@@ -163,6 +171,7 @@ struct ConferenceRoomView: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Color.secondary)
                 }
+            }
             }
         }
         .padding(.vertical, 24)
