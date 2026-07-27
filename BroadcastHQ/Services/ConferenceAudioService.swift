@@ -52,7 +52,7 @@ final class _StubRTCIceServer {
 
 final class _StubRTCAudioSessionConfiguration {
     var category: String = ""
-    var categoryOptions: UInt = 0
+    var categoryOptions: AVAudioSession.CategoryOptions = []
     var mode: String = ""
     static func webRTC() -> _StubRTCAudioSessionConfiguration { _StubRTCAudioSessionConfiguration() }
 }
@@ -273,7 +273,7 @@ class ConferenceAudioService: ObservableObject {
         RTCAudioSession.sharedInstance().lockForConfiguration()
         let config = RTCAudioSessionConfiguration.webRTC()
         config.category = AVAudioSession.Category.playAndRecord.rawValue
-        config.categoryOptions = [.defaultToSpeaker, .allowBluetooth]
+        config.categoryOptions = [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
         config.mode = AVAudioSession.Mode.voiceChat.rawValue
         try? RTCAudioSession.sharedInstance().setConfiguration(config)
         RTCAudioSession.sharedInstance().isAudioEnabled = true

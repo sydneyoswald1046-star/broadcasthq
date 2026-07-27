@@ -107,14 +107,25 @@ final class AudioNoiseProcessor {
         do {
             try session.setCategory(.playAndRecord, mode: .voiceChat, options: [
                 .defaultToSpeaker,
+                .allowBluetooth,
                 .allowBluetoothA2DP,
                 .interruptSpokenAudioAndMixWithOthers
             ])
             try session.setPreferredIOBufferDuration(0.01)
             try session.setPreferredSampleRate(48000)
             try session.setActive(true, options: .notifyOthersOnDeactivation)
+            preferBluetoothInputIfAvailable()
         } catch {
             print("Audio session config failed: \(error)")
+        }
+    }
+
+    /// Route mic input to a connected Bluetooth device when available.
+    static func preferBluetoothInputIfAvailable() {
+        let session = AVAudioSession.sharedInstance()
+        guard let inputs = session.availableInputs else { return }
+        if let btInput = inputs.first(where: { $0.portType == .bluetoothHFP || $0.portType == .bluetoothLE }) {
+            try? session.setPreferredInput(btInput)
         }
     }
 

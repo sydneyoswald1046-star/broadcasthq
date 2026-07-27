@@ -157,6 +157,7 @@ class PTTAudioService: NSObject, ObservableObject {
             if !isCapturing {
                 try session.setCategory(.playAndRecord, mode: .default, options: [
                     .defaultToSpeaker,
+                    .allowBluetooth,
                     .allowBluetoothA2DP,
                     .mixWithOthers
                 ])
@@ -168,7 +169,7 @@ class PTTAudioService: NSObject, ObservableObject {
     }
     
     private func handleRouteChange() {
-        // Rebuild playback engine if route changed (headphones plugged in, etc.)
+        AudioNoiseProcessor.preferBluetoothInputIfAvailable()
         if isPlaybackReady {
             preparePlaybackEngine()
         }
