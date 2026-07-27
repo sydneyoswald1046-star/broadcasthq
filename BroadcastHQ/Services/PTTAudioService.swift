@@ -21,6 +21,7 @@ class PTTAudioService: NSObject, ObservableObject {
     // Capture (mic → send)
     private var captureEngine: AVAudioEngine?
     private var isCapturing: Bool = false
+    private let noiseProcessor = AudioNoiseProcessor()
     
     // Playback (receive → speaker) — kept alive independently
     private var playbackEngine: AVAudioEngine?
@@ -147,17 +148,7 @@ class PTTAudioService: NSObject, ObservableObject {
     // MARK: - Audio Session
     
     private func activateCaptureSession() {
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [
-                .defaultToSpeaker,
-                .allowBluetoothA2DP,
-                .interruptSpokenAudioAndMixWithOthers
-            ])
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            DispatchQueue.main.async { self.lastError = "Audio setup failed" }
-        }
+        AudioNoiseProcessor.configureSessionForNoiseCancellation()
     }
     
     private func activatePlaybackSession() {
@@ -197,12 +188,19 @@ class PTTAudioService: NSObject, ObservableObject {
         
         captureEngine = AVAudioEngine()
         guard let engine = captureEngine else { return }
-        
+
         let inputNode = engine.inputNode
+
+        // Enable Apple's hardware-accelerated voice processing (AEC + NS + AGC)
+        AudioNoiseProcessor.enableVoiceProcessing(on: inputNode)
+
         let format = inputNode.outputFormat(forBus: 0)
-        
+
         guard format.sampleRate > 0, format.channelCount > 0 else { return }
-        
+
+        noiseProcessor.updateSampleRate(Float(format.sampleRate))
+        noiseProcessor.reset()
+
         // Send format info only to the peers that should receive this channel.
         sendFormatInfo(format, channel: channel, to: targetPeers(for: channel, among: session.connectedPeers))
 
@@ -211,6 +209,9 @@ class PTTAudioService: NSObject, ObservableObject {
             guard let channelData = buffer.floatChannelData?[0] else { return }
             let frameCount = Int(buffer.frameLength)
             guard frameCount > 0 else { return }
+
+            // Run through noise processor (high-pass + noise gate + VAD)
+            self.noiseProcessor.process(channelData, frameCount: frameCount)
 
             // Only transmit to peers on the target channel (team members + supervisors,
             // or the DM target). Team B never receives Team A's audio on the wire.

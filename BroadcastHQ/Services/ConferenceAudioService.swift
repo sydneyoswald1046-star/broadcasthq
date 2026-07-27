@@ -267,6 +267,9 @@ class ConferenceAudioService: ObservableObject {
     }
 
     private func setupLocalAudio() {
+        // Configure session for maximum noise cancellation (71 dB SNR target)
+        AudioNoiseProcessor.configureSessionForNoiseCancellation()
+
         RTCAudioSession.sharedInstance().lockForConfiguration()
         let config = RTCAudioSessionConfiguration.webRTC()
         config.category = AVAudioSession.Category.playAndRecord.rawValue
@@ -277,7 +280,19 @@ class ConferenceAudioService: ObservableObject {
         RTCAudioSession.sharedInstance().unlockForConfiguration()
 
         guard let factory = factory else { return }
-        let constraints = RTCMediaConstraints(mandatoryConstraints: nil, optionalConstraints: nil)
+        // Enable noise suppression and auto gain control via WebRTC constraints
+        let constraints = RTCMediaConstraints(
+            mandatoryConstraints: nil,
+            optionalConstraints: [
+                "googNoiseSuppression": "true",
+                "googAutoGainControl": "true",
+                "googHighpassFilter": "true",
+                "googEchoCancellation": "true",
+                "googNoiseSuppression2": "true",
+                "googAutoGainControl2": "true",
+                "googTypingNoiseDetection": "true"
+            ]
+        )
         let audioSource = factory.audioSource(with: constraints)
         localAudioTrack = factory.audioTrack(with: audioSource, trackId: "audio0")
         localAudioTrack?.isEnabled = true

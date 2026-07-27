@@ -38,6 +38,12 @@ struct ConferenceRoomView: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Color.bhqGreen)
                     .tracking(1)
+                Text("·")
+                    .foregroundStyle(Color.secondary.opacity(0.4))
+                Text("OPEN CHANNEL")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.bhqBlue)
+                    .tracking(0.5)
             }
             Text(room.name)
                 .font(.system(size: 20, weight: .bold))
@@ -45,6 +51,18 @@ struct ConferenceRoomView: View {
             Text("\(room.participantCount) participant\(room.participantCount == 1 ? "" : "s")")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.secondary)
+            HStack(spacing: 6) {
+                Image(systemName: "waveform.badge.minus")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.bhqGreen)
+                Text("Noise Cancellation Active")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(Color.bhqGreen)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.bhqGreen.opacity(0.1))
+            .clipShape(Capsule())
         }
         .padding(.top, 16)
         .padding(.bottom, 12)
