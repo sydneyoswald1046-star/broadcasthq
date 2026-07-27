@@ -652,13 +652,8 @@ class AuthState: ObservableObject {
     }
 
     func handleBackgrounded() {
-        guard isInConference else { return }
-        backgroundConferenceTimer?.invalidate()
-        backgroundConferenceTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.leaveConference()
-            }
-        }
+        // Conference rooms stay connected indefinitely in background —
+        // user stays in until the room ends, they leave, or the app is terminated.
     }
 
     func handleForegrounded() {
