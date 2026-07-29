@@ -106,10 +106,11 @@ class PushNotificationService: ObservableObject {
     
     func sendConferenceInviteNotification(roomName: String, fromName: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Conference Invite"
+        content.title = "Conference Room"
         content.subtitle = fromName
-        content.body = "You're invited to \(roomName)"
-        content.sound = .default
+        content.body = "\(fromName) invited you to \(roomName)"
+        content.sound = .defaultCritical
+        content.interruptionLevel = .timeSensitive
 
         let request = UNNotificationRequest(
             identifier: "conference-\(UUID().uuidString)",

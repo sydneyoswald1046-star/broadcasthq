@@ -435,6 +435,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 752MX8J6RV;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ConferenceLiveActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ConferenceLiveActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
@@ -444,7 +445,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.valorlive.app.ConferenceLiveActivity;
+				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ.ConferenceLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -462,6 +463,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 752MX8J6RV;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ConferenceLiveActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ConferenceLiveActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
@@ -471,7 +473,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.valorlive.app.ConferenceLiveActivity;
+				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ.ConferenceLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;

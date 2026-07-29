@@ -77,6 +77,7 @@ class AuthState: ObservableObject {
     private var activeRoomListener: ListenerRegistration?
     private var conferenceHeartbeatTimer: Timer?
     private var backgroundConferenceTimer: Timer?
+    private var knownConferenceRoomIds: Set<String> = []
     private var liveActivity: Activity<ConferenceActivityAttributes>?
     private var liveActivityTimer: Timer?
     private var conferenceJoinTime: Date?
@@ -84,7 +85,8 @@ class AuthState: ObservableObject {
     var isInConference: Bool { activeConferenceRoom != nil }
 
     @AppStorage("savedOrgCode") private var savedOrgCode: String = ""
-    
+    @AppStorage("deviceId") private var deviceId: String = ""
+
     private let firestore = FirestoreService.shared
     private var pendingDeletions: Set<String> = []
     private var accountsListener: ListenerRegistration?
@@ -104,6 +106,7 @@ class AuthState: ObservableObject {
     private var reminderTimer: Timer?
     
     init() {
+        if deviceId.isEmpty { deviceId = UUID().uuidString }
         // If returning user with saved org, auto-connect
         if !savedOrgCode.isEmpty {
             orgCode = savedOrgCode
@@ -301,14 +304,28 @@ class AuthState: ObservableObject {
         
         // Conference rooms listener
         conferenceRoomsListener?.remove()
+        knownConferenceRoomIds = []
         conferenceRoomsListener = firestore.listenToConferenceRooms { [weak self] rooms in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 let userId = self.currentUser?.id ?? ""
-                self.conferenceRooms = rooms.filter { room in
+                let visible = rooms.filter { room in
                     room.accessMode == .open || room.createdBy == userId || room.invitedUserIds.contains(userId)
                 }
-                // Auto-close rooms empty for 10+ minutes
+
+                // Notify user of new rooms they're invited to (not rooms they created)
+                if !self.knownConferenceRoomIds.isEmpty {
+                    for room in visible where !self.knownConferenceRoomIds.contains(room.id) {
+                        if room.createdBy != userId {
+                            PushNotificationService.shared.sendConferenceInviteNotification(
+                                roomName: room.name, fromName: room.createdByName
+                            )
+                        }
+                    }
+                }
+                self.knownConferenceRoomIds = Set(visible.map(\.id))
+
+                self.conferenceRooms = visible
                 self.cleanupEmptyConferenceRooms()
             }
         }
@@ -346,30 +363,34 @@ class AuthState: ObservableObject {
     
     func updatePresence(_ status: String) {
         guard let userId = currentUser?.id else { return }
-        // Write to a separate presence doc so it doesn't trigger the accounts listener constantly
         Task {
-            try? await firestore.updatePresence(userId: userId, status: status)
+            try? await firestore.updatePresence(userId: userId, status: status, deviceId: deviceId)
         }
     }
-    
+
     func goOnline() {
         updatePresence("online")
         heartbeatTimer?.invalidate()
         heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.updatePresence("online")
         }
-        
-        // Save user ID for FCM and register token
+
         if let userId = currentUser?.id {
             UserDefaults.standard.set(userId, forKey: "currentUserId")
             FCMService.shared.saveTokenToFirestore()
         }
     }
-    
+
     func goOffline() {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
-        updatePresence("offline")
+        // Only mark this device offline — other devices may still be active
+        guard let userId = currentUser?.id else { return }
+        Task {
+            try? await firestore.updatePresence(
+                userId: userId, status: "offline", deviceId: deviceId
+            )
+        }
     }
     
     // MARK: - Equipment Actions
@@ -460,12 +481,7 @@ class AuthState: ObservableObject {
             name: name, createdBy: user.id, createdByName: user.displayName,
             accessMode: accessMode, invitedUserIds: invitedUserIds
         )
-        // Notify the creator that invites were sent (actual FCM push to invitees is server-side)
-        if accessMode == .invite && !invitedUserIds.isEmpty {
-            PushNotificationService.shared.sendConferenceInviteNotification(
-                roomName: name, fromName: user.displayName
-            )
-        }
+        // Invitees get notified via their own Firestore listener (see conferenceRoomsListener)
         return roomId
     }
 
@@ -857,9 +873,18 @@ class AuthState: ObservableObject {
         masterModeOrgs = []
     }
     
+    func isPinTakenInOrg(_ pin: String) async -> Bool {
+        do {
+            return try await firestore.isPinTakenInOrg(pin: pin)
+        } catch {
+            return false
+        }
+    }
+
     func signupMember(firstName: String, lastName: String, email: String, phone: String, pin: String, role: UserRole, position: String, team: String) {
         let account = StoredAccount(
-            id: UUID().uuidString, firstName: firstName, lastName: lastName, email: email,
+            id: UUID().uuidString, firstName: firstName, lastName: lastName,
+            email: email.lowercased().trimmingCharacters(in: .whitespaces),
             phone: phone, pin: pin, role: role, position: position, team: team,
             isApproved: role == .admin || role == .teamLead, joinedDate: Date(),
             presence: "online", lastSeen: Date()
@@ -938,8 +963,15 @@ class AuthState: ObservableObject {
         // cleared synchronously just below, and the async write must not build a path
         // from the (by-then empty) orgCode, which throws a fatal Firestore exception.
         let offlineOrg = firestore.orgCode
+        let logoutDeviceId = deviceId
         if let offlineUserId = currentUser?.id, !offlineOrg.isEmpty {
-            Task { try? await firestore.updatePresence(orgCode: offlineOrg, userId: offlineUserId, status: "offline") }
+            Task {
+                try? await firestore.updatePresence(orgCode: offlineOrg, userId: offlineUserId, status: "offline", deviceId: logoutDeviceId)
+                // Remove this device's FCM token so the other device still receives notifications
+                if let token = FCMService.shared.fcmToken {
+                    try? await firestore.removeFCMToken(userId: offlineUserId, token: token)
+                }
+            }
         }
         
         // Stop PTT (stop() also stops capture). On main — AVAudioEngine teardown.
@@ -962,6 +994,7 @@ class AuthState: ObservableObject {
         equipment = []
         messages = []
         conferenceRooms = []
+        knownConferenceRoomIds = []
         activeConferenceRoom = nil
         isMuted = false
         orgCode = ""

@@ -40,6 +40,10 @@ class PTTAudioService: NSObject, ObservableObject {
     // Silence detection — only updates UI, doesn't tear down engine
     private var silenceTimer: DispatchWorkItem?
     private var lastAudioReceived: Date = .distantPast
+
+    // Playback queue depth management — prevents latency buildup
+    private var scheduledBufferCount: Int = 0
+    private let maxQueuedBuffers: Int = 4
     
     // Audio route change observer
     private var routeChangeObserver: Any?
@@ -205,7 +209,7 @@ class PTTAudioService: NSObject, ObservableObject {
         // Send format info only to the peers that should receive this channel.
         sendFormatInfo(format, channel: channel, to: targetPeers(for: channel, among: session.connectedPeers))
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 512, format: format) { [weak self] buffer, _ in
             guard let self = self, let session = self.session, !session.connectedPeers.isEmpty else { return }
             guard let channelData = buffer.floatChannelData?[0] else { return }
             let frameCount = Int(buffer.frameLength)
@@ -280,6 +284,7 @@ class PTTAudioService: NSObject, ObservableObject {
         // Tear down old engine
         playerNode?.stop()
         playbackEngine?.stop()
+        scheduledBufferCount = 0
         
         guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: channels, interleaved: false) else { return }
         
@@ -377,18 +382,24 @@ class PTTAudioService: NSObject, ObservableObject {
         }
         
         guard let player = playerNode, let format = playbackFormat else { return }
-        
+
+        // Drop incoming audio if too many buffers queued — keeps latency tight
+        guard scheduledBufferCount < maxQueuedBuffers else { return }
+
         let frameCount = UInt32(data.count / MemoryLayout<Float>.size)
         guard frameCount > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
         buffer.frameLength = frameCount
-        
+
         data.withUnsafeBytes { raw in
             if let src = raw.baseAddress?.assumingMemoryBound(to: Float.self), let dst = buffer.floatChannelData?[0] {
                 dst.update(from: src, count: Int(frameCount))
             }
         }
-        
-        player.scheduleBuffer(buffer, completionHandler: nil)
+
+        scheduledBufferCount += 1
+        player.scheduleBuffer(buffer) { [weak self] in
+            self?.scheduledBufferCount -= 1
+        }
         lastAudioReceived = Date()
         
         if !isReceivingAudio {

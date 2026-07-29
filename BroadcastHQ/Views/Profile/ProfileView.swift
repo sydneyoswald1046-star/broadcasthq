@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 struct ProfileView: View {
     @Binding var currentUser: AppUser
@@ -18,6 +19,9 @@ struct ProfileView: View {
     @State private var showAppearanceSettings: Bool = false
     @State private var showHelpSupport: Bool = false
     @State private var codeCopied: Bool = false
+    @State private var audioOutputName: String = "iPhone Speaker"
+    @State private var audioOutputIcon: String = "speaker.wave.2.fill"
+    @State private var audioOutputIsBluetooth: Bool = false
     
     private var team: Team? { Team.find(currentUser.team) }
     private var theme: RoleTheme { RoleTheme.forUser(currentUser) }
@@ -32,6 +36,7 @@ struct ProfileView: View {
                 statusSelector
                 infoSection
                 equipmentSection
+                audioOutputSection
                 accountSection
             }.padding(.vertical)
         }
@@ -256,6 +261,115 @@ struct ProfileView: View {
         }
     }
     
+    // MARK: - Audio Output
+    private var audioOutputSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("AUDIO OUTPUT").font(.footnote).foregroundStyle(Color.secondary).padding(.horizontal)
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Image(systemName: audioOutputIcon)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color.white)
+                        .frame(width: 28, height: 28)
+                        .background(audioOutputIsBluetooth ? Color.bhqBlue : Color(.systemGray2))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(audioOutputName)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Color.primary)
+                        Text(audioOutputIsBluetooth ? "Bluetooth Connected" : "System Default")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.secondary)
+                    }
+                    Spacer()
+                    if audioOutputIsBluetooth {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.bhqGreen)
+                                .frame(width: 6, height: 6)
+                            Text("Connected")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Color.bhqGreen)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.bhqGreen.opacity(0.12))
+                        .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
+
+                if audioOutputIsBluetooth {
+                    Divider().padding(.leading, 52)
+                    HStack(spacing: 12) {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.bhqGreen)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(audioInputName)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.primary)
+                            Text("Microphone Input")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                }
+            }
+            .background(Color.bhqCard)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal)
+        }
+        .onAppear { refreshAudioRoute() }
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { _ in
+            refreshAudioRoute()
+        }
+    }
+
+    private var audioInputName: String {
+        let inputs = AVAudioSession.sharedInstance().currentRoute.inputs
+        return inputs.first?.portName ?? "iPhone Microphone"
+    }
+
+    private func refreshAudioRoute() {
+        let route = AVAudioSession.sharedInstance().currentRoute
+        guard let output = route.outputs.first else {
+            audioOutputName = "iPhone Speaker"
+            audioOutputIcon = "speaker.wave.2.fill"
+            audioOutputIsBluetooth = false
+            return
+        }
+
+        let btTypes: Set<AVAudioSession.Port> = [.bluetoothA2DP, .bluetoothHFP, .bluetoothLE]
+        let isBT = btTypes.contains(output.portType)
+
+        audioOutputIsBluetooth = isBT
+        audioOutputName = output.portName
+
+        switch output.portType {
+        case .bluetoothA2DP, .bluetoothHFP, .bluetoothLE:
+            audioOutputIcon = "headphones"
+        case .headphones:
+            audioOutputIcon = "headphones"
+            audioOutputName = "Wired Headphones"
+        case .builtInSpeaker:
+            audioOutputIcon = "speaker.wave.2.fill"
+            audioOutputName = "iPhone Speaker"
+        case .builtInReceiver:
+            audioOutputIcon = "phone.fill"
+            audioOutputName = "iPhone Earpiece"
+        default:
+            audioOutputIcon = "speaker.wave.2.fill"
+        }
+    }
+
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("ACCOUNT").font(.footnote).foregroundStyle(Color.secondary).padding(.horizontal)

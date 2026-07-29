@@ -400,7 +400,7 @@ struct SignupView: View {
                     }
                 }
                 if pinMismatch { Text("PINs don't match — try again").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.bhqTint) }
-                if pinTaken { Text("This PIN is already in use — pick another").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.bhqTint) }
+                if pinTaken { Text("A teammate already uses this PIN — pick another").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.bhqTint) }
             }
             Spacer()
             pinNumberPad.padding(.bottom, 8)
@@ -493,11 +493,20 @@ struct SignupView: View {
         case .organization: handleOrgStep()
         case .pin:
             if pin != confirmPin { pinMismatch = true; resetPins(); return }
+            // Check org-scoped PIN uniqueness (local + Firestore backup)
             if authState.accounts.contains(where: { $0.pin == pin }) { pinTaken = true; resetPins(); return }
-            let finalPosition = selectedRole == .admin ? "Admin" : position
-            let finalTeam = selectedRole == .admin ? "broadcast" : selectedTeam
-            authState.signupMember(firstName: firstName, lastName: lastName, email: email, phone: phone,
-                pin: pin, role: selectedRole, position: finalPosition, team: finalTeam)
+            isCreatingOrg = true
+            Task {
+                let taken = await authState.isPinTakenInOrg(pin)
+                await MainActor.run {
+                    isCreatingOrg = false
+                    if taken { pinTaken = true; resetPins(); return }
+                    let finalPosition = selectedRole == .admin ? "Admin" : position
+                    let finalTeam = selectedRole == .admin ? "broadcast" : selectedTeam
+                    authState.signupMember(firstName: firstName, lastName: lastName, email: email, phone: phone,
+                        pin: pin, role: selectedRole, position: finalPosition, team: finalTeam)
+                }
+            }
         }
     }
     

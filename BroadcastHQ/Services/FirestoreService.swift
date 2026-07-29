@@ -136,11 +136,12 @@ class FirestoreService {
     
     // Email + PIN lookup — find by email first, then verify PIN
     func emailPinLookup(email: String, pin: String) async throws -> GlobalPinResult? {
+        let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespaces)
         let orgsSnapshot = try await db.collection("organizations").getDocuments()
         for orgDoc in orgsSnapshot.documents {
             let code = orgDoc.documentID
             let usersSnapshot = try await db.collection("organizations").document(code).collection("users")
-                .whereField("email", isEqualTo: email).limit(to: 1).getDocuments()
+                .whereField("email", isEqualTo: normalizedEmail).limit(to: 1).getDocuments()
             
             if let userDoc = usersSnapshot.documents.first {
                 let data = userDoc.data()
@@ -238,18 +239,25 @@ class FirestoreService {
     
     // Check if email exists in any org
     func emailExists(email: String) async throws -> Bool {
+        let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespaces)
         let orgsSnapshot = try await db.collection("organizations").getDocuments()
         for orgDoc in orgsSnapshot.documents {
             let code = orgDoc.documentID
             let snapshot = try await db.collection("organizations").document(code).collection("users")
-                .whereField("email", isEqualTo: email).limit(to: 1).getDocuments()
+                .whereField("email", isEqualTo: normalizedEmail).limit(to: 1).getDocuments()
             if !snapshot.documents.isEmpty { return true }
         }
         return false
     }
     
     // MARK: - Users
-    
+
+    func isPinTakenInOrg(pin: String) async throws -> Bool {
+        let snapshot = try await orgRef().collection("users")
+            .whereField("pin", isEqualTo: pin).limit(to: 1).getDocuments()
+        return !snapshot.documents.isEmpty
+    }
+
     func saveAccount(_ account: StoredAccount) async throws {
         try await orgRef().collection("users").document(account.id).setData([
             "firstName": account.firstName, "lastName": account.lastName,
@@ -541,24 +549,38 @@ class FirestoreService {
     
     // MARK: - Presence
     
-    func updatePresence(userId: String, status: String) async throws {
-        try await updatePresence(orgCode: orgCode, userId: userId, status: status)
+    func updatePresence(userId: String, status: String, deviceId: String? = nil) async throws {
+        try await updatePresence(orgCode: orgCode, userId: userId, status: status, deviceId: deviceId)
     }
 
     /// Explicit-org variant. Used during logout, where `orgCode` is cleared
     /// synchronously and an async presence write must not race against it.
     /// Empty paths are skipped — `document("")` throws a fatal Firestore exception.
-    func updatePresence(orgCode: String, userId: String, status: String) async throws {
+    func updatePresence(orgCode: String, userId: String, status: String, deviceId: String? = nil) async throws {
         guard !orgCode.isEmpty, !userId.isEmpty else { return }
+        var updates: [String: Any] = [
+            "presence": status, "lastSeen": Timestamp(date: Date()),
+        ]
+        if let deviceId = deviceId {
+            updates["devices.\(deviceId)"] = [
+                "status": status,
+                "lastSeen": Timestamp(date: Date()),
+            ]
+        }
         try await db.collection("organizations").document(orgCode)
-            .collection("users").document(userId).updateData([
-                "presence": status, "lastSeen": Timestamp(date: Date()),
-            ])
+            .collection("users").document(userId).updateData(updates)
     }
     
     func saveFCMToken(userId: String, token: String) async throws {
         try await orgRef().collection("users").document(userId).updateData([
             "fcmToken": token,
+            "fcmTokens": FieldValue.arrayUnion([token]),
+        ])
+    }
+
+    func removeFCMToken(userId: String, token: String) async throws {
+        try await orgRef().collection("users").document(userId).updateData([
+            "fcmTokens": FieldValue.arrayRemove([token]),
         ])
     }
     
