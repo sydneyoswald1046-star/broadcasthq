@@ -12,6 +12,8 @@ struct Team: Identifiable, Hashable {
         Team(id: "projection", name: "Projection", color: .bhqPurple, icon: "rectangle.on.rectangle"),
         Team(id: "choir", name: "Choir", color: .bhqGreen, icon: "music.mic"),
         Team(id: "lights", name: "Lights", color: .bhqYellow, icon: "lightbulb.fill"),
+        Team(id: "ushers", name: "Ushers", color: .orange, icon: "figure.walk"),
+        Team(id: "volunteers", name: "Volunteers", color: .mint, icon: "heart.fill"),
     ]
     
     static func find(_ id: String) -> Team? {
