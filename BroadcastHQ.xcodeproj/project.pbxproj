@@ -81,22 +81,16 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CDA1E2D82F856FFF008DF139 /* BroadcastHQ */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = BroadcastHQ;
 			sourceTree = "<group>";
 		};
 		CDA1E2E62F857001008DF139 /* BroadcastHQTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = BroadcastHQTests;
 			sourceTree = "<group>";
 		};
 		CDA1E2F02F857001008DF139 /* BroadcastHQUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = BroadcastHQUITests;
 			sourceTree = "<group>";
 		};
@@ -158,7 +152,6 @@
 				535961BC54744285C21F80E3 /* ConferenceLiveActivityWidget.swift */,
 				82C24BE1E5CC702A79A33052 /* ConferenceActivityAttributes.swift */,
 			);
-			name = ConferenceLiveActivity;
 			path = ConferenceLiveActivity;
 			sourceTree = "<group>";
 		};
@@ -432,7 +425,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 752MX8J6RV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ConferenceLiveActivity/Info.plist;
@@ -444,7 +437,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ.ConferenceLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -460,7 +453,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 752MX8J6RV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ConferenceLiveActivity/Info.plist;
@@ -472,7 +465,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.broadcasthq.BroadcastHQ.ConferenceLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -610,7 +603,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BroadcastHQ.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 752MX8J6RV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -635,7 +628,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 1.2.0;
 				OTHER_LDFLAGS = "-lc++";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",
@@ -661,7 +654,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BroadcastHQ.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 752MX8J6RV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -686,7 +679,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.1.3;
+				MARKETING_VERSION = 1.2.0;
 				OTHER_LDFLAGS = "-lc++";
 				"OTHER_LDFLAGS[sdk=iphoneos*]" = (
 					"$(inherited)",

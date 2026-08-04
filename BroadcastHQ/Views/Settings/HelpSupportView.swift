@@ -32,7 +32,7 @@ struct HelpSupportView: View {
                         .foregroundStyle(Color.secondary)
                         .tracking(2)
                     
-                    Text("Version 1.0.0 · Build 1")
+                    Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") · Build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1")")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.secondary.opacity(0.5))
                         .padding(.top, 4)
