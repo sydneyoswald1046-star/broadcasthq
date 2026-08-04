@@ -1010,7 +1010,21 @@ class AuthState: ObservableObject {
     }
     
     func leaveOrganization() {
-        logout()
+        guard let userId = currentUser?.id, !firestore.orgCode.isEmpty else {
+            logout()
+            return
+        }
+        let orgCode = firestore.orgCode
+        Task {
+            try? await firestore.deleteAccount(id: userId)
+            if let token = FCMService.shared.fcmToken {
+                try? await firestore.removeFCMToken(orgCode: orgCode, userId: userId, token: token)
+            }
+            await MainActor.run {
+                UserDefaults.standard.removeObject(forKey: "savedOrgCode")
+                logout()
+            }
+        }
     }
     
     var pendingMembers: [StoredAccount] { accounts.filter { !$0.isApproved } }

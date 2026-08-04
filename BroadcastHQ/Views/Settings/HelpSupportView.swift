@@ -78,13 +78,13 @@ struct HelpSupportView: View {
             
             // Legal
             Section {
-                NavigationLink { Text("Terms of Service").padding() } label: {
+                NavigationLink { TermsOfServiceView() } label: {
                     Label("Terms of Service", systemImage: "doc.text")
                 }
-                NavigationLink { Text("Privacy Policy").padding() } label: {
+                NavigationLink { PrivacyPolicyView() } label: {
                     Label("Privacy Policy", systemImage: "hand.raised.fill")
                 }
-                NavigationLink { Text("Open Source Licenses").padding() } label: {
+                NavigationLink { OpenSourceLicensesView() } label: {
                     Label("Open Source Licenses", systemImage: "chevron.left.forwardslash.chevron.right")
                 }
             } header: { Text("Legal") }
@@ -128,19 +128,35 @@ struct HelpSupportView: View {
     
     // MARK: - Contact Row
     private func contactRow(icon: String, label: String, value: String, color: Color) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundStyle(Color.white)
-                .frame(width: 28, height: 28)
-                .background(color)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            
-            VStack(alignment: .leading, spacing: 1) {
-                Text(label).font(.body)
-                Text(value).font(.subheadline).foregroundStyle(Color.secondary)
+        Button {
+            if label == "Email Support", let url = URL(string: "mailto:\(value)") {
+                UIApplication.shared.open(url)
+            } else if label == "Website", let url = URL(string: "https://\(value)") {
+                UIApplication.shared.open(url)
             }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.white)
+                    .frame(width: 28, height: 28)
+                    .background(color)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(label).font(.body).foregroundStyle(Color.primary)
+                    Text(value).font(.subheadline).foregroundStyle(Color.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
+            }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Logo
@@ -165,6 +181,159 @@ struct HelpSupportView: View {
             vPath.addLine(to: CGPoint(x: 80*sx, y: 38*sy))
             context.stroke(vPath, with: .color(Color.white.opacity(0.97)), style: StrokeStyle(lineWidth: 8*sx, lineCap: .round, lineJoin: .round))
         }
+    }
+}
+
+// MARK: - Terms of Service
+
+struct TermsOfServiceView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Last updated: August 2026")
+                    .font(.subheadline).foregroundStyle(Color.secondary)
+
+                legalSection("1. Acceptance of Terms",
+                    "By downloading, installing, or using Valor.Live (\"the App\"), you agree to be bound by these Terms of Service. If you do not agree, do not use the App.")
+
+                legalSection("2. Description of Service",
+                    "Valor.Live is a broadcast team coordination application that provides push-to-talk communication, equipment tracking, rundown management, and real-time team coordination features for broadcast production teams.")
+
+                legalSection("3. Account & Organization",
+                    "Access requires joining an organization via an admin-provided code. You are responsible for keeping your PIN confidential. Each organization's admin manages member access and approval.")
+
+                legalSection("4. Acceptable Use",
+                    "You agree not to: (a) use the App for unlawful purposes; (b) transmit harmful, abusive, or offensive content via PTT or messaging; (c) attempt to gain unauthorized access to other organizations; (d) interfere with the App's infrastructure or other users' experience.")
+
+                legalSection("5. Intellectual Property",
+                    "All content, design, and technology in the App are owned by Valor.Live and protected by intellectual property laws. You are granted a limited, non-exclusive, non-transferable license to use the App for its intended purpose.")
+
+                legalSection("6. Privacy",
+                    "Your use of the App is also governed by our Privacy Policy. By using the App, you consent to the collection and use of information as described therein.")
+
+                legalSection("7. Audio & Communications",
+                    "PTT audio is transmitted peer-to-peer over your local network and is not recorded or stored by Valor.Live. Conference room audio uses real-time peer connections. You are responsible for ensuring appropriate consent for any communications.")
+
+                legalSection("8. Termination",
+                    "We may suspend or terminate your access if you violate these terms. Organization admins may remove members at their discretion. You may leave an organization at any time through the app settings.")
+
+                legalSection("9. Disclaimer of Warranties",
+                    "The App is provided \"as is\" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, and non-infringement.")
+
+                legalSection("10. Limitation of Liability",
+                    "To the maximum extent permitted by law, Valor.Live shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the App.")
+
+                legalSection("11. Changes to Terms",
+                    "We reserve the right to modify these terms at any time. Continued use of the App after changes constitutes acceptance of the revised terms.")
+
+                legalSection("12. Contact",
+                    "Questions about these terms can be sent to support@valor.live.")
+            }
+            .padding(20)
+        }
+        .background(Color.bhqBackground)
+        .navigationTitle("Terms of Service")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Privacy Policy
+
+struct PrivacyPolicyView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Last updated: August 2026")
+                    .font(.subheadline).foregroundStyle(Color.secondary)
+
+                legalSection("Information We Collect",
+                    "When you join an organization, we store your name, email address, phone number (optional), role, team assignment, and a 4-digit PIN in your organization's secure database on Google Firebase. We also store device-specific push notification tokens to deliver alerts.")
+
+                legalSection("How We Use Your Information",
+                    "Your information is used to: authenticate you within your organization, display your profile to team members, deliver push notifications for alerts and conference rooms, and track equipment assignments.")
+
+                legalSection("Audio Data",
+                    "Push-to-talk audio is transmitted in real-time over your local network using peer-to-peer connections (MultipeerConnectivity). Audio is not recorded, stored, or transmitted to any server. Conference room audio uses the same peer-to-peer technology. No audio data leaves your local network.")
+
+                legalSection("Data Storage & Security",
+                    "Your organization data is stored on Google Firebase (Firestore) with security rules that restrict access to members of your organization. Profile images are stored in Firebase Storage. All data is encrypted in transit via TLS.")
+
+                legalSection("Third-Party Services",
+                    "The App uses: Google Firebase (authentication, database, storage, push notifications), Apple Push Notification Service (APNs), and MultipeerConnectivity (local network communication). Each service has its own privacy policy.")
+
+                legalSection("Data Retention",
+                    "Your data is retained as long as your account exists within an organization. When you leave an organization or an admin removes your account, your user data is deleted from that organization. Profile images may be cached locally and are cleared on logout.")
+
+                legalSection("Your Rights",
+                    "You can: view and edit your profile information at any time, leave an organization to remove your data, request deletion of your account by contacting your organization admin or support@valor.live.")
+
+                legalSection("Children's Privacy",
+                    "The App is not intended for children under 13. We do not knowingly collect personal information from children under 13.")
+
+                legalSection("Changes to This Policy",
+                    "We may update this Privacy Policy from time to time. Changes will be reflected in the \"Last updated\" date above.")
+
+                legalSection("Contact Us",
+                    "For privacy-related questions, contact us at support@valor.live.")
+            }
+            .padding(20)
+        }
+        .background(Color.bhqBackground)
+        .navigationTitle("Privacy Policy")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Open Source Licenses
+
+struct OpenSourceLicensesView: View {
+    private let licenses: [(String, String, String)] = [
+        ("Firebase iOS SDK", "Google LLC", "Apache License 2.0"),
+        ("SwiftUI", "Apple Inc.", "Proprietary — included with iOS SDK"),
+        ("MultipeerConnectivity", "Apple Inc.", "Proprietary — included with iOS SDK"),
+        ("AVFoundation", "Apple Inc.", "Proprietary — included with iOS SDK"),
+    ]
+
+    var body: some View {
+        List {
+            Section {
+                Text("Valor.Live is built with the following open source and system frameworks.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.secondary)
+                    .listRowBackground(Color.clear)
+            }
+
+            Section {
+                ForEach(licenses, id: \.0) { name, author, license in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(name)
+                            .font(.system(size: 15, weight: .medium))
+                        Text(author)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.secondary)
+                        Text(license)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.secondary.opacity(0.7))
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: { Text("Frameworks & Libraries") }
+        }
+        .navigationTitle("Open Source Licenses")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Legal Section Helper
+
+private func legalSection(_ title: String, _ body: String) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+        Text(title)
+            .font(.system(size: 15, weight: .semibold))
+        Text(body)
+            .font(.system(size: 14))
+            .foregroundStyle(Color.secondary)
+            .lineSpacing(3)
     }
 }
 

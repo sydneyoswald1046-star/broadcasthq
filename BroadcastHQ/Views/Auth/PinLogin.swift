@@ -21,6 +21,11 @@ struct PinLoginView: View {
     @State private var showSignup: Bool = false
     @State private var isSigningIn: Bool = false
     @State private var emailSubmitted: Bool = false
+
+    // Rate limiting
+    @State private var failedAttempts: Int = 0
+    @State private var lockedUntil: Date?
+    @State private var lockCountdown: Int = 0
     
     // Forgot PIN
     @State private var isGoogleSigningIn: Bool = false
@@ -298,16 +303,26 @@ struct PinLoginView: View {
     
     private func deletePin() { if !pin.isEmpty { pin.removeLast(); showError = false } }
     
+    private var isLockedOut: Bool {
+        guard let until = lockedUntil else { return false }
+        return Date() < until
+    }
+
     private func attemptLogin() {
+        if isLockedOut {
+            showError = true
+            errorMessage = "Too many attempts — wait \(lockCountdown)s"
+            pin = ""
+            return
+        }
+
         isSigningIn = true; showError = false
         Task {
             var success = false
-            
+
             if step == .pin {
-                // Remembered device — search within saved org
                 success = await authState.rememberedSignIn(pin: pin)
             } else {
-                // New device — email + PIN
                 let result = await authState.emailPinSignIn(email: email, pin: pin)
                 success = result.success
                 if !success {
@@ -316,12 +331,36 @@ struct PinLoginView: View {
                     }
                 }
             }
-            
+
             await MainActor.run {
                 isSigningIn = false
-                if !success && !authState.isMasterMode {
+                if success {
+                    failedAttempts = 0
+                    lockedUntil = nil
+                } else if !authState.isMasterMode {
+                    failedAttempts += 1
+                    if failedAttempts >= 5 {
+                        let delay = min(30 * Int(pow(2.0, Double(failedAttempts - 5))), 300)
+                        lockedUntil = Date().addingTimeInterval(Double(delay))
+                        lockCountdown = delay
+                        errorMessage = "Too many attempts — wait \(delay)s"
+                        startLockTimer()
+                    }
                     showError = true; pin = ""
                     shakeAnimation()
+                }
+            }
+        }
+    }
+
+    private func startLockTimer() {
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+            DispatchQueue.main.async {
+                lockCountdown -= 1
+                if lockCountdown <= 0 {
+                    timer.invalidate()
+                    lockedUntil = nil
+                    showError = false
                 }
             }
         }
