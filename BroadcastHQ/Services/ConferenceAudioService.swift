@@ -215,12 +215,8 @@ class ConferenceAudioService: ObservableObject {
 
             DispatchQueue.main.async { self.speakingPeers.removeAll() }
 
-            RTCAudioSession.sharedInstance().lockForConfiguration()
-            let config = RTCAudioSessionConfiguration()
-            config.category = AVAudioSession.Category.ambient.rawValue
-            config.mode = AVAudioSession.Mode.default.rawValue
-            try? RTCAudioSession.sharedInstance().setConfiguration(config)
-            RTCAudioSession.sharedInstance().unlockForConfiguration()
+            // Don't reset audio session to .ambient — PTTAudioService owns the session
+            // and needs .playAndRecord to remain active after conference ends.
 
             roomId = nil
             userId = nil
@@ -267,8 +263,8 @@ class ConferenceAudioService: ObservableObject {
     }
 
     private func setupLocalAudio() {
-        // Configure session for maximum noise cancellation (71 dB SNR target)
-        AudioNoiseProcessor.configureSessionForNoiseCancellation()
+        // PTTAudioService owns the AVAudioSession configuration — don't reconfigure here
+        // to avoid disrupting active capture/playback.
 
         RTCAudioSession.sharedInstance().lockForConfiguration()
         let config = RTCAudioSessionConfiguration.webRTC()

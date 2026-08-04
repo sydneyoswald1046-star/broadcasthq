@@ -44,12 +44,25 @@ struct ProfileView: View {
         .navigationTitle("Profile").navigationBarTitleDisplayMode(.large)
         .alert("Edit Name", isPresented: $showEditName) {
             TextField("Full Name", text: $editNameText)
-            Button("Save") { if !editNameText.isEmpty { currentUser.displayName = editNameText } }
+            Button("Save") {
+                if !editNameText.isEmpty {
+                    currentUser.displayName = editNameText
+                    let parts = editNameText.split(separator: " ", maxSplits: 1)
+                    let first = String(parts.first ?? "")
+                    let last = parts.count > 1 ? String(parts[1]) : ""
+                    Task { try? await FirestoreService.shared.updateProfileName(id: currentUser.id, firstName: first, lastName: last) }
+                }
+            }
             Button("Cancel", role: .cancel) { }
         }
         .alert("Edit Phone", isPresented: $showEditPhone) {
             TextField("Phone Number", text: $editPhoneText)
-            Button("Save") { if !editPhoneText.isEmpty { currentUser.phone = editPhoneText } }
+            Button("Save") {
+                if !editPhoneText.isEmpty {
+                    currentUser.phone = editPhoneText
+                    Task { try? await FirestoreService.shared.updateProfilePhone(id: currentUser.id, phone: editPhoneText) }
+                }
+            }
             Button("Cancel", role: .cancel) { }
         }
         .alert("Sign Out", isPresented: $showSignOutConfirm) {

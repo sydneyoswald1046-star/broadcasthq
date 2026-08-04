@@ -2,49 +2,60 @@ import AVFoundation
 import Combine
 import MultipeerConnectivity
 import SwiftUI
+import os
 
 class PTTAudioService: NSObject, ObservableObject {
     static let shared = PTTAudioService()
-    
+
     @Published var connectedPeers: Int = 0
     @Published var connectedPeerNames: [String] = []
     @Published var isReceivingAudio: Bool = false
     @Published var receivingFromName: String = ""
     @Published var lastError: String?
-    
+
     // MultipeerConnectivity
     private var peerID: MCPeerID?
     private var session: MCSession?
     private var advertiser: MCNearbyServiceAdvertiser?
     private var browser: MCNearbyServiceBrowser?
-    
+
     // Capture (mic → send)
     private var captureEngine: AVAudioEngine?
     private var isCapturing: Bool = false
-    private let noiseProcessor = AudioNoiseProcessor()
-    
+
+    // Dedicated queue for MPC sends — keeps work off the real-time audio thread
+    private let sendQueue = DispatchQueue(label: "ptt.send", qos: .userInteractive)
+
     // Playback (receive → speaker) — kept alive independently
     private var playbackEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
     private var playbackFormat: AVAudioFormat?
     private var isPlaybackReady: Bool = false
-    
+
     private var isStarted: Bool = false
     private var micPermissionGranted: Bool = false
-    
+
     private var currentOrgCode: String = ""
     private var currentUserId: String = ""
     private var currentUserTeam: String = ""
     private var targetChannel: String = "global"
-    
+
     // Silence detection — only updates UI, doesn't tear down engine
     private var silenceTimer: DispatchWorkItem?
     private var lastAudioReceived: Date = .distantPast
 
     // Playback queue depth management — prevents latency buildup
-    private var scheduledBufferCount: Int = 0
-    private let maxQueuedBuffers: Int = 4
-    
+    // Lock-protected to avoid data races between MPC receive thread and audio completion callback
+    private var _scheduledBufferCount: Int32 = 0
+    private let bufferCountLock = OSAllocatedUnfairLock()
+    private let maxQueuedBuffers: Int32 = 3
+
+    // Capture format for resending to late-joining peers
+    private var captureFormat: AVAudioFormat?
+
+    // Delayed work item for post-capture session restore (cancelled on rapid re-capture)
+    private var postCaptureRestore: DispatchWorkItem?
+
     // Audio route change observer
     private var routeChangeObserver: Any?
     
@@ -159,12 +170,13 @@ class PTTAudioService: NSObject, ObservableObject {
         do {
             let session = AVAudioSession.sharedInstance()
             if !isCapturing {
-                try session.setCategory(.playAndRecord, mode: .default, options: [
+                try session.setCategory(.playAndRecord, mode: .voiceChat, options: [
                     .defaultToSpeaker,
                     .allowBluetooth,
                     .allowBluetoothA2DP,
                     .mixWithOthers
                 ])
+                try session.setPreferredIOBufferDuration(0.002)
                 try session.setActive(true)
             }
         } catch {
@@ -183,9 +195,11 @@ class PTTAudioService: NSObject, ObservableObject {
     
     func startCapturing(channel: String = "global") {
         guard !isCapturing, isStarted else { return }
-        
+
+        postCaptureRestore?.cancel()
+        postCaptureRestore = nil
         targetChannel = channel
-        
+
         if !micPermissionGranted { checkMicPermission(); return }
         guard let session = session else { return }
         
@@ -203,32 +217,32 @@ class PTTAudioService: NSObject, ObservableObject {
 
         guard format.sampleRate > 0, format.channelCount > 0 else { return }
 
-        noiseProcessor.updateSampleRate(Float(format.sampleRate))
-        noiseProcessor.reset()
+        captureFormat = format
 
         // Send format info only to the peers that should receive this channel.
         sendFormatInfo(format, channel: channel, to: targetPeers(for: channel, among: session.connectedPeers))
 
-        inputNode.installTap(onBus: 0, bufferSize: 512, format: format) { [weak self] buffer, _ in
+        // 256 frames at 48 kHz ≈ 5.3 ms per buffer — minimal capture latency.
+        // Apple Voice Processing on inputNode already handles AEC + NS + AGC,
+        // so skip the custom noise processor to avoid redundant per-sample work.
+        inputNode.installTap(onBus: 0, bufferSize: 256, format: format) { [weak self] buffer, _ in
             guard let self = self, let session = self.session, !session.connectedPeers.isEmpty else { return }
             guard let channelData = buffer.floatChannelData?[0] else { return }
             let frameCount = Int(buffer.frameLength)
             guard frameCount > 0 else { return }
 
-            // Run through noise processor (high-pass + noise gate + VAD)
-            self.noiseProcessor.process(channelData, frameCount: frameCount)
-
-            // Only transmit to peers on the target channel (team members + supervisors,
-            // or the DM target). Team B never receives Team A's audio on the wire.
             let targets = self.targetPeers(for: self.targetChannel, among: session.connectedPeers)
             guard !targets.isEmpty else { return }
 
+            // Copy audio data and dispatch MPC send off the real-time audio thread
             let channelBytes = self.targetChannel.data(using: .utf8) ?? Data()
             var data = Data([0x41, UInt8(channelBytes.count)])
             data.append(channelBytes)
             data.append(Data(bytes: channelData, count: frameCount * MemoryLayout<Float>.size))
 
-            try? session.send(data, toPeers: targets, with: .unreliable)
+            self.sendQueue.async {
+                try? session.send(data, toPeers: targets, with: .unreliable)
+            }
         }
         
         do {
@@ -247,17 +261,19 @@ class PTTAudioService: NSObject, ObservableObject {
         captureEngine = nil
         isCapturing = false
         targetChannel = "global"
-        
-        // Restore playback session and ensure engine is running
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard let self = self else { return }
+        captureFormat = nil
+
+        postCaptureRestore?.cancel()
+        let restore = DispatchWorkItem { [weak self] in
+            guard let self = self, !self.isCapturing else { return }
             self.activatePlaybackSession()
-            // Restart playback engine if it died during capture
             if let engine = self.playbackEngine, !engine.isRunning {
                 try? engine.start()
                 self.playerNode?.play()
             }
         }
+        postCaptureRestore = restore
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: restore)
     }
     
     private func sendFormatInfo(_ format: AVAudioFormat, channel: String, to peers: [MCPeerID]) {
@@ -284,7 +300,7 @@ class PTTAudioService: NSObject, ObservableObject {
         // Tear down old engine
         playerNode?.stop()
         playbackEngine?.stop()
-        scheduledBufferCount = 0
+        bufferCountLock.withLock { _scheduledBufferCount = 0 }
         
         guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate, channels: channels, interleaved: false) else { return }
         
@@ -368,23 +384,24 @@ class PTTAudioService: NSObject, ObservableObject {
             activatePlaybackSession()
             preparePlaybackEngine()
         }
-        
+
         // Recover if engine was stopped or interrupted
         if let engine = playbackEngine, !engine.isRunning {
             activatePlaybackSession()
             try? engine.start()
             playerNode?.play()
         }
-        
+
         // Recover if player node stopped
         if let player = playerNode, !player.isPlaying {
             player.play()
         }
-        
+
         guard let player = playerNode, let format = playbackFormat else { return }
 
         // Drop incoming audio if too many buffers queued — keeps latency tight
-        guard scheduledBufferCount < maxQueuedBuffers else { return }
+        let currentCount = bufferCountLock.withLock { _scheduledBufferCount }
+        guard currentCount < maxQueuedBuffers else { return }
 
         let frameCount = UInt32(data.count / MemoryLayout<Float>.size)
         guard frameCount > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
@@ -396,27 +413,25 @@ class PTTAudioService: NSObject, ObservableObject {
             }
         }
 
-        scheduledBufferCount += 1
+        bufferCountLock.withLock { _scheduledBufferCount += 1 }
         player.scheduleBuffer(buffer) { [weak self] in
-            self?.scheduledBufferCount -= 1
+            guard let self = self else { return }
+            self.bufferCountLock.withLock { self._scheduledBufferCount -= 1 }
         }
-        lastAudioReceived = Date()
-        
-        if !isReceivingAudio {
-            DispatchQueue.main.async {
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if !self.isReceivingAudio {
                 self.isReceivingAudio = true
                 self.receivingFromName = name
             }
-        }
-        
-        silenceTimer?.cancel()
-        let timer = DispatchWorkItem { [weak self] in
-            DispatchQueue.main.async {
+            self.silenceTimer?.cancel()
+            let timer = DispatchWorkItem { [weak self] in
                 self?.isReceivingAudio = false
             }
+            self.silenceTimer = timer
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: timer)
         }
-        silenceTimer = timer
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: timer)
     }
     
     deinit { stop() }
@@ -426,8 +441,14 @@ class PTTAudioService: NSObject, ObservableObject {
 
 extension PTTAudioService: MCSessionDelegate {
     func session(_ session: MCSession, peer peerID: MCPeerID, didChange state: MCSessionState) {
+        // Send format info to newly connected peers so late joiners get the right playback format
+        if state == .connected, isCapturing, let fmt = captureFormat {
+            sendFormatInfo(fmt, channel: targetChannel, to: [peerID])
+        }
+
         let name = peerID.displayName.split(separator: "|").first.map(String.init) ?? peerID.displayName
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
             self.connectedPeers = session.connectedPeers.count
             self.connectedPeerNames = session.connectedPeers.map {
                 $0.displayName.split(separator: "|").first.map(String.init) ?? $0.displayName

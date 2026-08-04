@@ -36,7 +36,11 @@ struct BroadcastEvent: Identifiable {
 }
 
 class AuthState: ObservableObject {
-    private let masterPin: String = "0911"
+    #if DEBUG
+    private let masterPin: String? = "0911"
+    #else
+    private let masterPin: String? = nil
+    #endif
     
     @Published var status: AuthStatus = .loggedOut
     @Published var currentUser: AppUser?
@@ -77,7 +81,7 @@ class AuthState: ObservableObject {
     private var activeRoomListener: ListenerRegistration?
     private var conferenceHeartbeatTimer: Timer?
     private var backgroundConferenceTimer: Timer?
-    private var knownConferenceRoomIds: Set<String> = []
+    private var knownConferenceRoomIds: Set<String>?
     private var liveActivity: Activity<ConferenceActivityAttributes>?
     private var liveActivityTimer: Timer?
     private var conferenceJoinTime: Date?
@@ -304,7 +308,7 @@ class AuthState: ObservableObject {
         
         // Conference rooms listener
         conferenceRoomsListener?.remove()
-        knownConferenceRoomIds = []
+        knownConferenceRoomIds = nil
         conferenceRoomsListener = firestore.listenToConferenceRooms { [weak self] rooms in
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -314,8 +318,8 @@ class AuthState: ObservableObject {
                 }
 
                 // Notify user of new rooms they're invited to (not rooms they created)
-                if !self.knownConferenceRoomIds.isEmpty {
-                    for room in visible where !self.knownConferenceRoomIds.contains(room.id) {
+                if let known = self.knownConferenceRoomIds {
+                    for room in visible where !known.contains(room.id) {
                         if room.createdBy != userId {
                             PushNotificationService.shared.sendConferenceInviteNotification(
                                 roomName: room.name, fromName: room.createdByName
@@ -485,8 +489,11 @@ class AuthState: ObservableObject {
         return roomId
     }
 
+    private var isJoiningConference = false
+
     func joinConference(roomId: String) {
-        guard let user = currentUser else { return }
+        guard let user = currentUser, !isJoiningConference else { return }
+        isJoiningConference = true
         // Leave current conference first
         if isInConference { leaveConference() }
         // Stop PTT if active
@@ -501,11 +508,13 @@ class AuthState: ObservableObject {
                 try await firestore.joinConferenceRoom(roomId: roomId, participant: participant)
             } catch {
                 print("❌ Failed to join conference room: \(error)")
+                await MainActor.run { self.isJoiningConference = false }
                 return
             }
 
             // Listener setup only reached if join succeeded
             await MainActor.run {
+                self.isJoiningConference = false
                 self.activeRoomListener?.remove()
                 self.activeRoomListener = self.firestore.listenToConferenceRoom(roomId: roomId) { [weak self] room in
                     DispatchQueue.main.async {
@@ -541,19 +550,11 @@ class AuthState: ObservableObject {
             }
         }
 
-        // Start heartbeat
+        // Start heartbeat — only update own lastSeen, no pruning of others
         conferenceHeartbeatTimer?.invalidate()
         conferenceHeartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             guard let self = self, let room = self.activeConferenceRoom, let user = self.currentUser else { return }
-            // Update own heartbeat
             Task { try? await self.firestore.updateParticipantHeartbeat(roomId: room.id, userId: user.id) }
-            // Prune stale participants (> 90s since lastSeen)
-            let staleThreshold = Date().addingTimeInterval(-90)
-            let staleIds = room.participants.filter { $0.lastSeen < staleThreshold && $0.userId != user.id }.map { $0.userId }
-            for staleId in staleIds {
-                Task { try? await self.firestore.leaveConferenceRoom(roomId: room.id, userId: staleId) }
-                ConferenceAudioService.shared.handleParticipantLeft(staleId)
-            }
         }
 
         isMuted = false
@@ -912,7 +913,10 @@ class AuthState: ObservableObject {
     }
     
     func resetMemberPin(_ accountId: String) async -> String? {
-        let newPin = String(format: "%04d", Int.random(in: 0...9999))
+        var newPin: String
+        repeat {
+            newPin = String(format: "%04d", Int.random(in: 0...9999))
+        } while await isPinTakenInOrg(newPin)
         do {
             try await firestore.updatePin(orgCode: firestore.orgCode, userId: accountId, newPin: newPin)
             if let index = accounts.firstIndex(where: { $0.id == accountId }) {
@@ -969,7 +973,7 @@ class AuthState: ObservableObject {
                 try? await firestore.updatePresence(orgCode: offlineOrg, userId: offlineUserId, status: "offline", deviceId: logoutDeviceId)
                 // Remove this device's FCM token so the other device still receives notifications
                 if let token = FCMService.shared.fcmToken {
-                    try? await firestore.removeFCMToken(userId: offlineUserId, token: token)
+                    try? await firestore.removeFCMToken(orgCode: offlineOrg, userId: offlineUserId, token: token)
                 }
             }
         }
@@ -994,7 +998,7 @@ class AuthState: ObservableObject {
         equipment = []
         messages = []
         conferenceRooms = []
-        knownConferenceRoomIds = []
+        knownConferenceRoomIds = nil
         activeConferenceRoom = nil
         isMuted = false
         orgCode = ""

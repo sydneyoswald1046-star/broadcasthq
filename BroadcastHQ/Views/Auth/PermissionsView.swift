@@ -159,7 +159,7 @@ struct PermissionsView: View {
     private func triggerLocalNetwork() {
         let service = PTTAudioService.shared
         if let user = authState.currentUser {
-            service.start(orgCode: authState.orgCode, userName: user.displayName, userId: user.id)
+            service.start(orgCode: authState.orgCode, userName: user.displayName, userId: user.id, userTeam: user.team, userRole: user.role.rawValue)
         }
         networkTriggered = true
         withAnimation(.easeInOut(duration: 0.3)) { currentStep = 2 }

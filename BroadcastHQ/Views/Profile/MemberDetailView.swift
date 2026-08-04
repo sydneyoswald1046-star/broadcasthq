@@ -2,12 +2,13 @@ import SwiftUI
 
 struct MemberDetailView: View {
     let member: AppUser
+    @EnvironmentObject var authState: AuthState
     @State private var showDirectMessage: Bool = false
 
     private var team: Team? { Team.find(member.team) }
     private var theme: RoleTheme { RoleTheme.forUser(member) }
     private var memberEquipment: [Equipment] {
-        Equipment.samples.filter { $0.assignedTo == member.displayName }
+        authState.equipment.filter { $0.assignedTo == member.displayName }
     }
 
     var body: some View {

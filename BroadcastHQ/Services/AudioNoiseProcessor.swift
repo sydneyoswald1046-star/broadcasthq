@@ -111,7 +111,7 @@ final class AudioNoiseProcessor {
                 .allowBluetoothA2DP,
                 .interruptSpokenAudioAndMixWithOthers
             ])
-            try session.setPreferredIOBufferDuration(0.005)
+            try session.setPreferredIOBufferDuration(0.002)
             try session.setPreferredSampleRate(48000)
             try session.setActive(true, options: .notifyOthersOnDeactivation)
             preferBluetoothInputIfAvailable()

@@ -146,8 +146,9 @@ class FirestoreService {
             if let userDoc = usersSnapshot.documents.first {
                 let data = userDoc.data()
                 guard let storedPin = data["pin"] as? String, storedPin == pin else {
-                    // Email found but wrong PIN
-                    return nil
+                    // Email found but wrong PIN — continue checking other orgs
+                    // (user may exist in multiple orgs with different PINs)
+                    continue
                 }
                 
                 guard let firstName = data["firstName"] as? String,
@@ -174,10 +175,11 @@ class FirestoreService {
     // MARK: - Admin PIN Reset (find admin by email across all orgs)
     
     func findAdminByEmail(email: String) async throws -> GlobalPinResult? {
+        let normalizedEmail = email.lowercased().trimmingCharacters(in: .whitespaces)
         // Try collectionGroup first
         do {
             let snapshot = try await db.collectionGroup("users")
-                .whereField("email", isEqualTo: email)
+                .whereField("email", isEqualTo: normalizedEmail)
                 .whereField("role", isEqualTo: "admin")
                 .getDocuments()
             
@@ -210,7 +212,7 @@ class FirestoreService {
         for orgDoc in orgsSnapshot.documents {
             let code = orgDoc.documentID
             let usersSnapshot = try await db.collection("organizations").document(code).collection("users")
-                .whereField("email", isEqualTo: email).whereField("role", isEqualTo: "admin").limit(to: 1).getDocuments()
+                .whereField("email", isEqualTo: normalizedEmail).whereField("role", isEqualTo: "admin").limit(to: 1).getDocuments()
             
             if let userDoc = usersSnapshot.documents.first {
                 let data = userDoc.data()
@@ -277,6 +279,18 @@ class FirestoreService {
         ])
     }
     
+    func updateProfileName(id: String, firstName: String, lastName: String) async throws {
+        try await orgRef().collection("users").document(id).updateData([
+            "firstName": firstName, "lastName": lastName,
+        ])
+    }
+
+    func updateProfilePhone(id: String, phone: String) async throws {
+        try await orgRef().collection("users").document(id).updateData([
+            "phone": phone,
+        ])
+    }
+
     func deleteAccount(id: String) async throws {
         try await orgRef().collection("users").document(id).delete()
     }
@@ -583,6 +597,12 @@ class FirestoreService {
             "fcmTokens": FieldValue.arrayRemove([token]),
         ])
     }
+
+    func removeFCMToken(orgCode: String, userId: String, token: String) async throws {
+        try await db.collection("organizations").document(orgCode).collection("users").document(userId).updateData([
+            "fcmTokens": FieldValue.arrayRemove([token]),
+        ])
+    }
     
     // MARK: - PTT Channel State
     
@@ -809,6 +829,7 @@ class FirestoreService {
         try await orgRef().collection("conferenceRooms").document(roomId).updateData([
             "isActive": false,
             "participants": [],
+            "emptySince": FieldValue.delete(),
         ])
     }
 
@@ -823,16 +844,21 @@ class FirestoreService {
                 }
                 guard let data = snap.data(), data["isActive"] as? Bool == true else { return false }
                 var participants = (data["participants"] as? [[String: Any]]) ?? []
-                if participants.contains(where: { $0["userId"] as? String == participant.userId }) {
-                    return true
-                }
-                participants.append([
+                let newEntry: [String: Any] = [
                     "userId": participant.userId,
                     "displayName": participant.displayName,
                     "joinedAt": Timestamp(date: participant.joinedAt),
                     "lastSeen": Timestamp(date: participant.lastSeen),
-                ])
-                txn.updateData(["participants": participants], forDocument: ref)
+                ]
+                if let idx = participants.firstIndex(where: { $0["userId"] as? String == participant.userId }) {
+                    participants[idx] = newEntry
+                } else {
+                    participants.append(newEntry)
+                }
+                txn.updateData([
+                    "participants": participants,
+                    "emptySince": FieldValue.delete()
+                ], forDocument: ref)
                 return true
             }) { (result, error) in
                 if let error = error { cont.resume(throwing: error) }
@@ -953,7 +979,8 @@ class FirestoreService {
                     return ConferenceParticipant(userId: userId, displayName: displayName, joinedAt: joinedAt, lastSeen: lastSeen)
                 }
                 let emptySince = (data["emptySince"] as? Timestamp)?.dateValue()
-                let room = ConferenceRoom(id: snapshot!.documentID, name: name, createdBy: createdBy,
+                let docId = snapshot?.documentID ?? roomId
+                let room = ConferenceRoom(id: docId, name: name, createdBy: createdBy,
                     createdByName: createdByName, createdAt: createdAt, accessMode: accessMode,
                     invitedUserIds: invitedUserIds, participants: participants, isActive: isActive,
                     emptySince: emptySince)

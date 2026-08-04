@@ -32,6 +32,13 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>BroadcastHQ uses Bluetooth to connect to wireless audio devices and PTT remotes for hands-free communication during broadcasts.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_valorlive-ptt._tcp</string>
